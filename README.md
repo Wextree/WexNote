@@ -1,0 +1,2 @@
+# WexNote
+Notes for learning
