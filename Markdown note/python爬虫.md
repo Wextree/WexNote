@@ -42,3 +42,18 @@ urllib\requests\bs4
 - allow_redirects：True/False，默认为True，重定向开关
 - stream：True/False，默认为True，获取内容立即下载
 - verify：True/False，默认为True，认证SSL证书开关
+
+
+
+# Beautiful Soup
+
+```python
+from bs4 import BeautifulSoup
+# or
+import bs4
+```
+
+
+
+## 基本元素
+
