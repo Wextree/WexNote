@@ -282,6 +282,8 @@ with open(filename, mode) as f:
 
 ## 正则表达式
 
+**re库默认贪婪匹配，也就是会匹配字符最长的一个字符串，如果要最小匹配，可以在操作符后面加上？**
+
 - . ：匹配除换行符以外的任意字符
 - '*'：重复前面的子表达式0次或多次
 - +：重复前面的子表达式1次或多次
@@ -299,6 +301,57 @@ with open(filename, mode) as f:
 - [^a-z]：匹配任意不再指定范围内的任意字符
 
 > regex101.com是一个匹配正则字符串的网站
+
+
+
+### Re库主要功能函数
+
+- re.search(pattern, string, flag=0)：在一个字符串中搜索匹配正则表达式的第一个位置， 返回match对象
+  - pattern： 正则匹配表达式
+  - string：待匹配字符串
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.match(pattern, string, flag=0)：从一个字符串的开始位置起匹配正则表达式， 返回match对象
+  - pattern： 正则匹配表达式
+  - string：待匹配字符串
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.findall(pattern, string, flag=0)：搜索字符串，以列表类型返回全部能匹配的子串
+  - pattern： 正则匹配表达式
+  - string：待匹配字符串
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.split(pattern, string, maxsplit, flag=0)：将一个字符串按照正则表达式匹配结果进行分割，返回列表类型
+  - pattern： 正则匹配表达式
+  - string：待匹配字符串
+  - maxsplit：最大分割数
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.finditer(pattern, string, flag=0)：搜索字符串， 返回一个匹配结果的迭代类型， 每个迭代元素是match对象
+  - pattern： 正则匹配表达式
+  - string：待匹配字符串
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.sub(pattern, repl, string, count, flag=0)：在一个字符串中替换所有匹配正则表达式的子串，返回替换后的字符串
+  - pattern： 正则匹配表达式
+  - repl：替换匹配的字符串
+  - string：待匹配字符串
+  - count：匹配的最大替换次数
+  - flag：正则表达式使用时的控制标志（可查，主要有三个）
+- re.compile(pattern, flags=0)：将正则表达式转化成正则表达式对象，然后就可以使用re库的六种与上面等价的搜索方法
+
+
+
+### match对象
+
+主要属性：
+
+- .string：待匹配的文本
+- .re：正则表达式
+- .pos：搜索文本的开始位置
+- .endpos：搜索文本的结束位置
+
+主要方法：
+
+- .group(0)：获得匹配后的字符串
+- .start：匹配字符串在原始字符串的开始位置
+- .end：匹配字符串在原始字符串的结束位置
+- .span：返回（.start, .end）
 
 
 
