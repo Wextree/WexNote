@@ -579,3 +579,79 @@ skiplist编码的有序集合结构：
 编码之间的**转换：**
 
 - 原本是ziplist编码的，如果保存的数据长度大于64或者元素数量大于128，会转换成skiplist编码的。
+
+
+
+## Redis数据库
+
+Redis默认有16个数据库，数据库之间是**相互隔离**的，也就是说，再15号数据库里存的东西，在14号数据库是找不到的。（数据库编号**默认从0开始**）
+
+### 原理
+
+```c
+// Redis服务器用redisServer结构体来表示，其中redisDb是一个数组，用来保存所有的数据库，dbnum代表数据库的数量(这个可以配置，默认是16)
+struct redisServer{  
+
+    //redisDb数组,表示服务器中所有的数据库
+    redisDb *db;  
+
+    //服务器中数据库的数量
+    int dbnum;  
+
+};
+
+// Redis是C/S结构，Redis客户端通过redisClient结构体来表示
+typedef struct redisClient{  
+
+    //客户端当前所选数据库
+    redisDb *db;  
+
+}redisClient;
+
+// Redis中对每个数据库用redisDb结构体来表示：
+typedef struct redisDb { 
+    int id;         // 数据库ID标识
+    dict *dict;     // 键空间，存放着所有的键值对              
+    dict *expires;  // 过期哈希表，保存着键的过期时间                          
+    dict *watched_keys; // 被watch命令监控的key和相应client    
+    long long avg_ttl;  // 数据库内所有键的平均TTL（生存时间）     
+} redisDb;
+```
+
+![](E:\git\WexNote\Audition Points\imgs\640 (11).webp)
+
+![](E:\git\WexNote\Audition Points\imgs\640 (12).webp)
+
+### 过期时间
+
+Redis是**基于内存**，内存是比较昂贵的，容量肯定比不上硬盘的。就
+
+因为我们的内存是**有限**的。所以我们**会干掉不常用的数据，保留常用的数据**。这就需要我们设置一下键的过期(生存)时间了。
+
+- 设置键的**生存**时间可以通过`EXPIRE`或者`PEXPIRE`命令。
+- 设置键的**过期**时间可以通过`EXPIREAT`或者`PEXPIREAT`命令。
+
+其实`EXPIRE`、`PEXPIRE`、`EXPIREAT`这三个命令都是通过`PEXPIREAT`命令来实现的。
+
+我们在redisDb结构体中还发现了`dict *expires;`属性，**存放所有键过期的时间**。
+
+既然有设置过期(生存)时间的命令，那肯定也有**移除过期时间**，**查看剩余生存时间**的命令了：
+
+- **PERSIST**(移除过期时间)
+- **TTL(Time To Live)**返回剩余生存时间，以秒为单位
+- **PTTL**以毫秒为单位返回键的剩余生存时间
+
+#### 策略
+
+- **定时删除**(对内存友好，对CPU不友好)
+
+- - **到时间点**上就把所有过期的键删除了。
+
+- **惰性删除**(对CPU极度友好，对内存极度不友好)
+
+- - 每次从键空间取键的时候，判断一下该键是否过期了，如果过期了就删除。
+
+- **定期删除**(折中)
+
+- - **每隔**一段时间去删除过期键，**限制**删除的执行时长和频率。
+
