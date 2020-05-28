@@ -1009,8 +1009,9 @@ public class EurekaClientApplication {
 ### application和bootstrap的区别
 
 - **加载顺序：**若application.yml 和bootstrap.yml 在同一目录下：bootstrap.yml 先加载 application.yml后加载
-  - bootstrap.yml 用于应用程序**上下文的引导阶段**。bootstrap.yml 由父Spring ApplicationContext加载。
-
+  
+- bootstrap.yml 用于应用程序**上下文的引导阶段**。bootstrap.yml 由父Spring ApplicationContext加载。
+  
 - **配置区别：**
   - bootstrap.yml 用来程序引导时执行，应用于更加早期配置信息读取。可以理解成**系统级别**的一些参数配置，这些参数一般是不会变动的。一旦bootStrap.yml 被加载，则**内容不会被覆盖**。
   - application.yml 可以用来定义**应用级别**的， 应用程序特有配置信息，可以用来配置后续各个模块中需使用的公共参数等。
@@ -1035,21 +1036,159 @@ public class EurekaClientApplication {
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-bus-amqp</artifactId>
 </dependency>
+
+<!-- 之后为了开放monitor接口给webhooks使用 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-config-monitor</artifactId>
+</dependency>
 ```
 
- 
+打开rabbitMQ（具体下载和安装使用在官网都有说明），和server服务器，可以看到已有队列：
+
+![](E:\git\WexNote\Markdown note\imgs\1590673738(1).jpg)
 
 
 
+ #### 相应准备
+
+我们写一个类和controller来接收配置中的信息，方便我们感受更改网上配置，刷新直接可以返回新的信息。
+
+```yaml
+# 网上仓库的配置文件，记得把上面码云的重新拷贝到github，因为码云暂时没有办法很好适配spring
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/,http://localhost:8762/eureka/
+
+spring:
+  application:
+    name: client
+        
+env: dev
+
+# 新增部分，对应下面的类
+girl:
+  name: wextree
+  age: 30
+```
+
+```java
+// 写在客户端
+@Data
+@Component
+// 获取配置中的信息
+@ConfigurationProperties("girl")
+// 启动自动刷新
+@RefreshScope
+public class GirlConfig {
+    private String name;
+    private Integer age;
+}
+
+// 只是为了可以调用url返回信息
+@RestController
+@RequestMapping("/girl")
+public class GirlController {
+    @Autowired
+    private GirlConfig girlConfig;
+
+    @GetMapping("/print")
+    public String print(){
+        return "name: " + girlConfig.getName() + "  age: " + girlConfig.getAge();
+    }
+}
+
+```
 
 
 
+#### 使用natapp进行内网穿透  
+
+因为我们用主机当做服务器，github的webhook发送过来的消息无法直接传给127.0.0.1。所以我们需要暂时将我们的内网公开访问，设定一个暂时的域名。
+
+官网下载：（需要下载客户端）https://natapp.cn/
+
+上面有使用教程等，只需要购买一个免费的域名，利用它提供的密钥登陆即可。
+
+接下来说的webhook里面的那串很乱的域名就是我利用这个申请的。
 
 
 
+#### 配置webhook
+
+利用github上的webhook在仓库更新时会自动发送消息，然后将config服务器开放对应的monitor接口，实时收取信息并且进行更新：
+
+打开对应的仓库，进入设置：
+
+![](E:\git\WexNote\Markdown note\imgs\6929927dd246a1dede9d622874f4ed7.png)
+
+这时候我们就可以打开服务器和客户端进行访问啦
+
+![1590674566857](C:\Users\58354\AppData\Roaming\Typora\typora-user-images\1590674566857.png)
+
+![1590674580418](C:\Users\58354\AppData\Roaming\Typora\typora-user-images\1590674580418.png)
+
+但是，我们更改仓库中的配置文件，刷新客户端程序，根本没有任何改变。
+
+这就是我遇到的一个大坑，这是新版本的一个新规定。
 
 
 
+#### ServiceID
+
+接着上述的问题，当我们修改仓库中的配置信息，查看输出日志发现配置器服务端其实是收到了webhook的更新消息，并且刷新了配置的信息，但是却显示了204（即无内容）。
+
+- **设置客户端打印日志级别进行代码排查：**
+
+  ```yaml
+  logging:
+    level:
+      org.springframework.cloud.bus: debug
+  ```
+
+  ```verilog
+  In match: config:0:*, config:0:303d037c4a07208637a35314ef53d92f
+  匹配不上，默认default
+  ```
+
+应用有一个**ServiceID**，默认的值是app:index:id的组装。
+
+```
+ app ：如果vcap.application.name存在，使用vcap.application.name，否则使用spring.application.name（默认值为application）
+ index ：配置值的情况下优先使用vcap.application.instance_index，否则依次使用spring.application.index、local.server.port、server.port（默认值0）
+ id: 如果vcap.application.instance_id存在，使用vcap.application.instance_id，否则给一个随机值
+```
+
+官方文档：
+
+![](E:\git\WexNote\Markdown note\imgs\20190603110245704.png)
+
+对应官方文档，以及我们的配置文件，我们可以依据serviceID的匹配规则来设置对应的参数去匹配webhooks。
+
+如果发现app:index:id中的index不一致， 举例yml配置：
+
+```yaml
+vcap:
+  application:
+    instance_index: ${spring.cloud.config.profile}
+```
+
+或者直接修改bus.id的配置，如下：
+
+```yaml
+spring:
+  application:
+    name: client
+  cloud:
+    config:
+      discovery:
+        service-id: CONFIG
+        enabled: true
+      profile: dev 
+    bus:
+      id: {spring.application.name}:{spring.cloud.config.profile}:${random.value}
+```
 
 
 
