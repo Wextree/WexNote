@@ -805,6 +805,290 @@ public String getMessage2(){
 
 
 
+## Config
+
+Spring Cloud Config项目是一个解决分布式系统的**配置管理方案**。它包含了**Client**和**Server**两个部分，server提供配置文件的存储、以接口的形式将配置文件的内容提供出去，client通过接口获取数据、并依据此数据初始化自己的应用。
+
+### 导入相应依赖
+
+```xml
+<!-- pom.xml -->
+<properties>
+    <java.version>1.8</java.version>
+    <spring-cloud.version>Hoxton.SR4</spring-cloud.version>
+</properties>
+
+<dependencies>
+    <!-- config服务器包 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-config-server</artifactId>
+    </dependency>
+    
+    <!-- 也要注册到eureka之上 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+</dependencies>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>${spring-cloud.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+```yaml
+# application.yml
+spring:
+  application:
+  	# 注册上去的服务名
+    name: config
+  # 配置网上拉取配置文件的地址，用户名和密码，可以设置加载到本地的路径
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://gitee.com/wextree/config-repo
+          username: Wextree
+          password: hawxe20151116.
+          basedir: E:\softprograme\java\code\SpringCloud\config_demo\configdir
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+```
+
+```java
+// ConfigDemoApplication.class
+@SpringBootApplication
+@EnableDiscoveryClient
+// 主类要加上标识
+@EnableConfigServer
+public class ConfigDemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigDemoApplication.class, args);
+    }
+}
+```
+
+### 打开服务器获取配置文件
+
+在码云上新建一个仓库
+
+![](E:\git\WexNote\Markdown note\imgs\fe27447f2391e3a100cfcb1d3df6fa5.png)
+
+打开浏览器输入对应URI，获取对应的配置文件
+
+格式：{label}/{name}-{profile}.xxxx
+
+- label：分支（可以省略）
+- name：文件名
+- profile：激活环境（必须要，如果没有设置那么也要随便加上一个）
+- xxxx：对应后缀名，代表格式
+
+![](E:\git\WexNote\Markdown note\imgs\1590580635(1).jpg)
+
+**进行访问**
+
+![](E:\git\WexNote\Markdown note\imgs\1590580725(1).jpg)
+
+换个格式：（会自动帮我们转换的）
+
+![](E:\git\WexNote\Markdown note\imgs\1590580771(1).jpg)
+
+![](E:\git\WexNote\Markdown note\imgs\1590580850(1).jpg)
+
+
+
+### 客户端配置
+
+```xml
+<!-- pom.xml -->
+<properties>
+    <java.version>1.8</java.version>
+    <spring-cloud.version>Hoxton.SR4</spring-cloud.version>
+</properties>
+
+<dependencies>
+    <!-- client下需要导入web模块，不然会自动停止 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+
+    <!-- 客户端所需要的包 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-config-client</artifactId>
+    </dependency>
+
+    <!-- 非必要包 -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+    </dependency>
+
+    <!-- 不是必要的，只是直接使用了之前的eureka客户端那个项目 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-openfeign</artifactId>
+    </dependency>
+</dependencies>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>${spring-cloud.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+```yaml
+# bootstrap.yml
+# 这里相对于之前有比较大的改变，主要有两点
+# 第一文件名改为bootstrap而不是application（区别见后详细介绍）
+# 第二，我们把以前的一部分配置都删除了，为了展示从config服务中获取配置
+spring:
+  application:
+    name: client
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        # 这是注册到eureka上面的id
+        service-id: CONFIG
+      # 激活环境
+      profile: dev
+
+server:
+  port: 8081
+```
+
+```java
+// EurekaClientApplication.java
+// 不需要多增加标识
+@SpringBootApplication
+@EnableDiscoveryClient
+@EnableFeignClients
+public class EurekaClientApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaClientApplication.class, args);
+    }
+
+}
+
+```
+
+运行之后就可以正常启动啦
+
+![](E:\git\WexNote\Markdown note\imgs\1590581448(1).jpg)
+
+
+
+### application和bootstrap的区别
+
+- **加载顺序：**若application.yml 和bootstrap.yml 在同一目录下：bootstrap.yml 先加载 application.yml后加载
+  - bootstrap.yml 用于应用程序**上下文的引导阶段**。bootstrap.yml 由父Spring ApplicationContext加载。
+
+- **配置区别：**
+  - bootstrap.yml 用来程序引导时执行，应用于更加早期配置信息读取。可以理解成**系统级别**的一些参数配置，这些参数一般是不会变动的。一旦bootStrap.yml 被加载，则**内容不会被覆盖**。
+  - application.yml 可以用来定义**应用级别**的， 应用程序特有配置信息，可以用来配置后续各个模块中需使用的公共参数等。
+
+- **属性覆盖：**
+
+  启动上下文时，**Spring Cloud** 会创建一个 Bootstrap Context，作为 Spring 应用的 Application Context 的父上下文。
+
+  初始化的时候，Bootstrap Context 负责从外部源加载配置属性并解析配置。这两个上下文共享一个从外部获取的 Environment。**Bootstrap 属性有高优先级，默认情况下，它们不会被本地配置覆盖**。
+
+  也就是说如果加载的 application.yml 的内容标签与 bootstrap 的标签一致，application 也不会覆盖 bootstrap，而 application.yml 里面的内容可以动态替换。
+
+  
+
+### springcloud Bus 配置刷新
+
+#### 相关配置
+
+```xml
+<!--结合rabbitMQ-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bus-amqp</artifactId>
+</dependency>
+```
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
