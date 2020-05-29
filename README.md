@@ -1,5 +1,7 @@
 # WexNote
 > Notes for learning
+>
+> 由于网络上传之后图片路径改变无法直接观看，可以下载下来修改路径观看！
 
 ## Markdown note
 

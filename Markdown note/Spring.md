@@ -1192,39 +1192,395 @@ spring:
 
 
 
+## Zuul
+
+Zuul是**Netflix**开源的微服务网关，可以和Eureka、Ribbon、Hystrix等组件配合使用，Spring Cloud对Zuul进行了整合与增强，Zuul默认使用的HTTP客户端是Apache HTTPClient，也可以使用**RestClient**或**okhttp3.OkHttpClient**。  Zuul的主要功能是**路由转发和过滤器**。路由功能是微服务的一部分，比如/demo/test转发到到demo服务。zuul默认和Ribbon结合实现了负载均衡的功能
+
+### 工作原理
+
+zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或者AOP。zuul把请求路由到用户处理逻辑的过程中，这些filter参与一些过滤处理，比如Authentication，Load Shedding等
+![](E:\git\WexNote\Markdown note\imgs\17866147-0cd4b2b96f649f4f.webp)
+
+- **功能：**
+  - **身份验证和安全性 - 确定每个资源的身份验证要求并拒绝不满足这些要求的请求**
+  - **洞察和监控 - 在边缘跟踪有意义的数据和统计数据，以便为我们提供准确的生产视图**
+  - **动态路由 - 根据需要动态地将请求路由到不同的后端群集**
+  - **压力测试 - 逐渐增加群集的流量以衡量性能。**
+  - **Load Shedding - 为每种类型的请求分配容量并删除超过限制的请求**
+  - **静态响应处理 - 直接在边缘构建一些响应，而不是将它们转发到内部集群**
+
+- **生命周期：**
+
+![](E:\git\WexNote\Markdown note\imgs\17866147-7cebc241af721a00.webp)
 
 
 
+### 组件
+
+- **zuul-core--zuul核心库，包含编译和执行过滤器的核心功能**。
+
+- **zuul-simple-webapp--zuul Web应用程序示例，展示了如何使用zuul-core构建应用程序**。
+
+- **zuul-netflix--lib包，将其他NetflixOSS组件添加到Zuul中，例如使用功能区进去路由请求处理**。
+
+- **zuul-netflix-webapp--webapp，它将zuul-core和zuul-netflix封装成一个简易的webapp工程包**。
 
 
 
+### 实现
+
+**新建一个项目，导入依赖：**
+
+```xml
+<!-- pom.xml -->
+<properties>
+        <java.version>1.8</java.version>
+        <spring-cloud.version>Hoxton.SR4</spring-cloud.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        
+        <!-- 新增核心组件 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-zuul</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+    </dependencies>
+```
 
 
 
+**结合config组件开启配置，静态配置写在里面，动态配置写在外面：**
+
+```yaml
+# bootstrap.yml
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        # 这是注册到eureka上面的id
+        service-id: CONFIG
+      profile: dev
+    bus:
+      id: ${spring.application.name}:${spring.cloud.config.profile}:${random.value}
+
+server:
+  port: 8082
+  
+# config  api-gateway-dev.yml
+# 自定义配置规则
+zuul:
+  routes:
+#    client: /myClient/**
+#    跟着定义的规则的名字
+    myClient:
+      path: /myClient/**
+      serviceId: client
+
+# 访问/actuator/routes可以查看所有的路由规则
+# ========添加配置=======
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*" #注意这里*要加引号，暴露全部，也可以只暴露相应endpoint
+  endpoint:
+    routes:
+      enabled: true # 默认为true，可以省略
+      
+env: dev
+```
+
+**主配置类：**
+
+```java
+// 主配置类
+@SpringBootApplication
+// 新增类
+@EnableZuulProxy
+public class ApiGatewayApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ApiGatewayApplication.class, args);
+    }
+
+    // 为了实现动态更新
+    @ConfigurationProperties("zuul")
+    @RefreshScope
+    public ZuulProperties zuulProperties(){
+        return new ZuulProperties();
+    }
+}
+```
+
+**同时启动客户端，配置组件服务端，还有这个zuul组件的服务器三个：**
+
+可以通过zuul服务器访问客户端（和直接访问客户端一致）：
+
+![](E:\git\WexNote\Markdown note\imgs\1590754408(1).jpg)
+
+![](E:\git\WexNote\Markdown note\imgs\1590754462(1).jpg)
 
 
 
+### 无法传递cookie问题
+
+由于这个zuul组件路由对于cookie等一些敏感信息会进行过滤，这个可以从zuul路由器的配置类看出。
+
+```java
+@ConfigurationProperties("zuul")
+public class ZuulProperties {
+    private Set<String> sensitiveHeaders = new LinkedHashSet<>(
+			Arrays.asList("Cookie", "Set-Cookie", "Authorization"));
+    
+    public void setSensitiveHeaders(Set<String> sensitiveHeaders) {
+		this.sensitiveHeaders = sensitiveHeaders;
+	}
+}
+```
+
+**所以我们可以在配置那里设置敏感头部位空：**
+
+```yml
+zuul:
+  routes:
+#    client: /myClient/**
+#    跟着定义的规则的名字
+    myClient:
+#      默认不添加cookie，需要设置为空
+      sensitiveHeaders:
+```
 
 
 
+### 实现权限过滤
+
+由于我们每个服务可能都要进行权限的过滤，但是我们要是一个个加上权限实在是太麻烦了，所以不如加在zuul微服务网关上。
+
+**实现要求：**当url带有token时，可以正常访问，如果没有，无法访问并且401 。
+
+在网关服务器**增加一个filte**r实现功能：
+
+```java
+package com.wex.apigateway.filter;
+
+import com.netflix.zuul.ZuulFilter;
+import com.netflix.zuul.context.RequestContext;
+import com.netflix.zuul.exception.ZuulException;
+import org.apache.http.HttpStatus;
+import org.springframework.util.StringUtils;
+
+import javax.servlet.http.HttpServletRequest;
+
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.PRE_DECORATION_FILTER_ORDER;
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.PRE_TYPE;
+
+// 创建一个Zuul过滤器
+// 所有参数及意义可以打开org.springframework.cloud.netflix.zuul.filters.support.FilterConstants查看
+@Component
+public class TokenFilter extends ZuulFilter {
+
+    @Override
+    public String filterType() {
+        // public static final String PRE_TYPE = "pre";
+        return PRE_TYPE;
+    }
+
+    @Override
+    public int filterOrder() {
+        // 在其之前-1
+        // public static final int PRE_DECORATION_FILTER_ORDER = 5;
+        return PRE_DECORATION_FILTER_ORDER-1;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        return true;
+    }
+
+    @Override
+    public Object run() throws ZuulException {
+        // 获取当前上下文
+        RequestContext requestContext = RequestContext.getCurrentContext();
+
+        // 获取参数
+        HttpServletRequest request = requestContext.getRequest();
+        String token = request.getParameter("token");
+        if (StringUtils.isEmpty(token)){
+            requestContext.setSendZuulResponse(false);
+            requestContext.setResponseStatusCode(HttpStatus.SC_UNAUTHORIZED); // 401
+        }
+
+        return null;
+    }
+}
+
+```
+
+直接打开访问：
+
+![](E:\git\WexNote\Markdown note\imgs\1590757485577.png)
+
+带着token：
+
+![](E:\git\WexNote\Markdown note\imgs\1590757528(1).jpg)
 
 
 
+ ### 实现post请求返回
+
+还是需要建立一个filter
+
+```java
+@Component
+public class AddResponseHeaderFilter extends ZuulFilter {
+    @Override
+    public String filterType() {
+        return POST_TYPE;
+    }
+
+    @Override
+    public int filterOrder() {
+        return SEND_RESPONSE_FILTER_ORDER-1;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        return true;
+    }
+
+    @Override
+    public Object run() throws ZuulException {
+        RequestContext requestContext = RequestContext.getCurrentContext();
+        HttpServletResponse response = requestContext.getResponse();
+        response.setHeader("uuid", UUID.randomUUID().toString());
+        return null;
+    }
+}
+```
+
+![](E:\git\WexNote\Markdown note\imgs\1590758227(1).jpg)
 
 
 
+### 令牌桶算法实现限流
+
+设定一个桶，按一定速率放入令牌（token），拿到令牌就可以进行，拿不到就没办法。
+
+我们利用其他组件已经写好的算法：
+
+```java
+package com.wex.apigateway.filter;
+
+import com.google.common.util.concurrent.RateLimiter;
+import com.netflix.zuul.ZuulFilter;
+import com.netflix.zuul.exception.ZuulException;
+import com.wex.apigateway.exception.RateLimiterException;
+import org.springframework.stereotype.Component;
+
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.PRE_TYPE;
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.SERVLET_DETECTION_FILTER_ORDER;
+
+@Component
+public class RateLimiterFilter extends ZuulFilter {
+    // 每秒多少个组件
+    private static final RateLimiter RATE_LIMITER = RateLimiter.create(100);
+
+    @Override
+    public String filterType() {
+        return PRE_TYPE;
+    }
+
+    @Override
+    public int filterOrder() {
+        // 一定要在最开始，所以我们设定在当前最高优先级还要高
+        return SERVLET_DETECTION_FILTER_ORDER-1;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        return true;
+    }
+
+    @Override
+    public Object run() throws ZuulException {
+        // 如果没有拿到令牌
+        if (!RATE_LIMITER.tryAcquire()){
+            throw new RateLimiterException();
+        }
+        return null;
+    }
+}
+
+public class RateLimiterException extends RuntimeException{
+}
+```
 
 
 
+### 跨域
 
+当我们对某个接口或者方法和类进行跨域声明时，我们可以加上注解
 
+`@CrossOrigin(allowCredentials = "true")`
 
+表示该方法允许跨域访问，并且可以传输cookie
 
+但是当我们应用有很多方法和类时，这个不适用，所以我们可以利用网关进行统一管理
 
+我们在zuul里面新建一个config/CorsConfig跨域配置：
 
+```java
+package com.wex.apigateway.config;
 
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
+import java.util.Arrays;
 
+@Configuration
+public class CorsConfig {
+    @Bean
+    public CorsFilter corsFilter(){
+        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        final CorsConfiguration configuration = new CorsConfiguration();
+        // 允许cookie传输
+        configuration.setAllowCredentials(true);
+        // 允许的原始域名
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        // 允许的头
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // 设置跨域时间，一定时间内对相同的域不再检查
+        configuration.setMaxAge(300l);
+
+        // 设置跨域路径和配置
+        source.registerCorsConfiguration("/**", configuration);
+
+        return new CorsFilter(source);
+    }
+}
+
+```
 
 
 
