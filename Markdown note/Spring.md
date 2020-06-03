@@ -301,13 +301,92 @@ org.springframework.boot.autoconfigure.dao.PersistenceExceptionTranslationAutoCo
 ```
 
 1. 首先注意到 selectImports 方法，其实从方法名就能看出，这个方法用于给容器中导入组件，然后跳到 getAutoConfigurationEntry 方法就是用于获取自动配置项的。
-
 2. 再来进入 getCandidateConfigurations 方法就是 获取一个自动配置 List ，这个 List 就包含了所有的自动配置的类名 。
-
 3. 再进入 SpringFactoriesLoader 类的 loadFactoryNames 方法，跳转到 loadSpringFactories 方法发现 ClassLoader 类加载器指定了一个 FACTORIES_RESOURCE_LOCATION 常量。
-
 4. 然后利用PropertiesLoaderUtils 把 ClassLoader 扫描到的这些文件的内容包装成 properties 对象，从 properties 中获取到 EnableAutoConfiguration.class 类（类名）对应的值，然后把他们添加在容器中。
 5. 每个自动配置类都要有一定条件才可以生效，可以打开配置文件中的`#debug`功能。会输出很多信息，告诉你那些类自动启用，需要哪些类才能生效。
+
+
+
+## SpringBoot 扩展 SpringMVC
+
+```java
+// spring 5.0 对应 springboot 2.1.8 之后
+@Configuration
+public class MvcConfig implements WebMvcConfigurer {
+    // 需要什么功能就查看对应的方法，保留了springboot原始的自动配置
+    
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // 浏览器访问对应路径，直接去success页面
+        registry.addViewController("/hello").setViewName("success");
+    }
+}
+```
+
+原理：
+
+```java
+// WebMvcAutoConfiguration是SpringMVC的自动配置类
+// 自动配置类里有该静态内部类，实现上述的接口，实现扩展配置
+public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {}
+    
+// 该内部类做配置时会引入
+@Import(EnableWebMvcConfiguration.class) 
+
+// 这个类实现了自动配置
+@Configuration(proxyBeanMethods = false)
+public static class EnableWebMvcConfiguration extends DelegatingWebMvcConfiguration implements ResourceLoaderAware {}
+
+// 查看父类
+public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+
+	private final WebMvcConfigurerComposite configurers = new WebMvcConfigurerComposite();
+
+	// 自动装配，就是说要获取容器中所有的扩展配置类
+    // 然后统一调用他们的方法
+	@Autowired(required = false)
+	public void setConfigurers(List<WebMvcConfigurer> configurers) {
+		if (!CollectionUtils.isEmpty(configurers)) {
+			this.configurers.addWebMvcConfigurers(configurers);
+		}
+	}
+}
+
+```
+
+###@EnableWebMvc
+可以全面接管MVC，即开启这个注解，会导致不自动装配，而是启用我们自己定义的。
+
+```java
+@Import(DelegatingWebMvcConfiguration.class)
+public @interface EnableWebMvc {
+}
+
+@Configuration(proxyBeanMethods = false)
+public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+}
+
+// 我们查看自动配置类
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnWebApplication(type = Type.SERVLET)
+@ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
+// 这一句标识着当没有该组件的时候，自动配置类才生效
+@ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
+@AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
+		ValidationAutoConfiguration.class })
+public class WebMvcAutoConfiguration {
+}
+```
+
+
+
+
+
+
+
+
 
 
 
@@ -1581,6 +1660,201 @@ public class CorsConfig {
 }
 
 ```
+
+
+
+## Hystrix
+
+### 雪崩效应
+
+在微服务架构中通常会有多个服务层调用，基础服务的故障可能会导致级联故障，进而造成整个系统不可用的情况，这种现象被称为服务雪崩效应。服务雪崩效应是一种因“服务提供者”的不可用导致“服务消费者”的不可用,并将不可用逐渐放大的过程。
+
+
+
+### 摘要
+
+Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，具有服务容错及线程隔离等一系列服务保护功能，本文将对其用法进行详细介绍。
+
+
+
+### Hystrix 简介
+
+在微服务架构中，服务与服务之间通过远程调用的方式进行通信，一旦某个被调用的服务发生了故障，其依赖服务也会发生故障，此时就会发生故障的蔓延，最终导致系统瘫痪。Hystrix实现了断路器模式，当某个服务发生故障时，通过断路器的监控，给调用方返回一个错误响应，而不是长时间的等待，这样就不会使得调用方由于长时间得不到响应而占用线程，从而防止故障的蔓延。Hystrix具备服务降级、服务熔断、线程隔离、请求缓存、请求合并及服务监控等强大功能。
+
+
+
+
+### 降级
+
+当有一些服务挂掉了或者是连接不上，可以实现降级，然后引导对应的页面或者方法上。
+
+- **简单实现一个客户端，实现对应的接口测试调用：**
+
+  ```java
+  @RestController
+  @RequestMapping("/user")
+  public class UserController {
+  
+      @GetMapping("/msg")
+      public User userMsg(){
+          return new User("zhangsan", 23, true);
+      }
+  }
+  ```
+
+  
+
+- **另一个客户端访问该接口：**
+
+  ```xml
+  <!-- 新增依赖 -->
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+  </dependency>
+  ```
+
+  ```java
+  // 主配置类
+  //@SpringBootApplication
+  //@EnableDiscoveryClient
+  //@EnableCircuitBreaker
+  @SpringCloudApplication  // 该注解就包含了上述三个注解
+  @EnableFeignClients
+  public class EurekaClientApplication {
+  
+      public static void main(String[] args) {
+          SpringApplication.run(EurekaClientApplication.class, args);
+      }
+  
+  }
+  ```
+
+  
+
+  ```java
+  @RestController
+  @RequestMapping("/hystrix")
+  @Slf4j
+  // 默认的降级策略
+  //@DefaultProperties(defaultFallback = "yourFallbackName")
+  public class HystrixController {
+  
+      @Autowired
+      private LoadBalancerClient loadBalancerClient;
+  
+      @GetMapping("/demo")
+      @HystrixCommand(fallbackMethod = "fallback", commandProperties = {
+          	// 这是设置超时时间，要去HystrixProperties里面找需要的名字和值，一般比较长
+              @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000")
+      }) // 表示找不到 url 之后启动的方法名
+      public String getUser(){
+          ServiceInstance serviceInstance = loadBalancerClient.choose("DEMO");
+          String url = String.format("http://%s:%s", serviceInstance.getHost(), serviceInstance.getPort()) + "/user/msg";
+          log.info("URL: {}",url);
+          User user = new RestTemplate().getForObject(url, User.class);
+          log.info("USER: {}",user.toString());
+  //        我们可以通过自己在内部抛出异常触发降级
+  //        throw new RuntimeException("test");
+          return user.toString();
+      }
+  
+      // 对应的降级策略，该方法对应的返回值要与调用它的方法的返回值一致
+      public String fallback(){
+          return "is to busy!";
+      }
+  }
+  ```
+
+  
+
+![](E:\git\WexNote\Markdown note\imgs\1590979089(1).jpg)
+
+
+
+### 熔断
+
+熔断器的原理很简单，如同电力过载保护器。它可以实现快速失败，如果它在一段时间内侦测到许多类似的错误，会强迫其以后的多个调用快速失败，不再访问远程服务器，从而防止应用程序不断地尝试执行可能会失败的操作，使得应用程序继续执行而不用等待修正错误，或者浪费CPU时间去等到长时间的超时产生。熔断器也可以使应用程序能够诊断错误是否已经修正，如果已经修正，应用程序会再次尝试调用操作。
+
+熔断器开关相互转换的逻辑如下图：
+
+![](E:\git\WexNote\Markdown note\imgs\hystrix-2.png)
+
+
+
+断路器很好理解, 当Hystrix Command请求后端服务**失败数量超过一定比例**(默认50%), 断路器会切换到开路状态(Open). 这时所有请求会直接失败而不会发送到后端服务. 断路器保持在**开路状态一段时间后(**默认5秒), 自动切换到**半开路状态**(HALF-OPEN). 这时会判断下一次请求的返回情况, 如果请求成功, 断路器切回闭路状态(CLOSED), 否则重新切换到开路状态(OPEN). Hystrix的断路器就像我们家庭电路中的保险丝, 一旦后端服务不可用, 断路器会直接切断请求链, 避免发送大量无效请求影响系统吞吐量, 并且断路器有自我检测并恢复的能力.
+
+- **熔断器相关配置：**
+
+  ```java
+  @HystrixCommand(commandProperties = {
+              // 熔断开关
+              @HystrixProperty(name = "circuitBreaker.enabled", value = "true"),
+              // 请求数量达到后开启熔断机制
+              @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "10"),
+              // 熔断打开后等待n秒进入半关闭状态
+              @HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds", value = "10000"),
+              // 当错误率达到60%开启熔断
+              @HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "60")
+      })
+  ```
+
+
+
+- **也可以把配置放在yml配置文件中（以超时时间为例）：**
+
+```yaml
+# 将hystrix的配置移动到这里
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 2000
+#    可以针对特定方法
+    getUser:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 1000
+```
+
+
+
+### Feign + Hystrix
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
