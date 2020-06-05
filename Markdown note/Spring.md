@@ -1824,35 +1824,278 @@ hystrix:
 
 ### Feign + Hystrix
 
+开启**hystrix**配置：
+
+```yaml
+# bootstrap.yml
+# feign集成了hystrix，但是需要手动打开
+feign:
+  hystrix:
+    enabled: true
+```
+
+定义相关的feign对应的hystrix的工厂类对象（实现了对应的接口）：
+
+```java
+@Component
+public class ErrorHelloImpl implements FallbackFactory<HelloClient> {
+
+    @Override
+    public HelloClient create(Throwable throwable) {
+        return new HelloClient() {
+            @Override
+            public User getUser() {
+                return new User("error", 100, false);
+            }
+};
+   
+```
+
+写一个测试的对应**feign接口**：
+
+```java
+@FeignClient(name = "demo", fallbackFactory = ErrorHelloImpl.class)
+public interface HelloClient {
+    @GetMapping("/user/msg")
+    public User getUser();
+}
+```
+
+写一个**controller**进行访问，访问的对象是上面之前定义的**demo服务**里面的**/user/msg**功能：
+
+```java
+@RestController
+public class UserController {
+
+    @Autowired
+    private HelloClient helloClient;
+
+    @GetMapping("/user")
+    public User user(){
+        User user = helloClient.getUser();
+        return user;
+    }
+
+}
+
+```
+
+查看服务，如果关闭对应服务会自动调用fallback中我们设置的对应方法：
+
+![](E:\git\WexNote\Markdown note\imgs\1591241545(1).jpg)
+
+
+
+### Hystrix Dashboard
+
+导入对应的**依赖**：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix-dashboard</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+**配置**：
+
+```yaml
+# feign集成了hystrix，但是需要手动打开
+feign:
+  hystrix:
+    enabled: true
+    
+# 暴露接口
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ["health","info","hystrix.stream"]
+```
+
+**启动类**：
+
+```java
+@SpringCloudApplication  // 已经包含了@EnableCircuitBreaker
+@EnableFeignClients
+@EnableHystrixDashboard
+public class EurekaClientApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaClientApplication.class, args);
+    }
+
+    // springboot 2.0 以上需要主动去设置
+    @Bean
+    public ServletRegistrationBean getServlet() {
+        HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
+        ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
+        registrationBean.setLoadOnStartup(1);
+        // 路径默认是/actuator/hystrix.stream
+        registrationBean.addUrlMappings("/hystrix.stream");
+        registrationBean.setName("HystrixMetricsStreamServlet");
+        return registrationBean;
+    }
+
+}
+```
+
+访问`http://localhost:8081/hystrix`可以看到界面：
+
+![](E:\git\WexNote\Markdown note\imgs\1591261949(1).jpg)
 
 
 
 
 
+访问 `http://localhost:8081/hystrix.stream`可以看到：
+
+![](E:\git\WexNote\Markdown note\imgs\1591261876(1).jpg)
 
 
 
+####Unable to connect to Command Metric Stream.问题及其解决
+
+```java
+// HystrixAutoConfiguration类
+
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnWebApplication(type = SERVLET)
+@ConditionalOnBean(HystrixCommandAspect.class) // only install the stream if enabled
+@ConditionalOnClass({ HystrixMetricsStreamServlet.class })
+@EnableConfigurationProperties(HystrixProperties.class)
+protected static class HystrixServletAutoConfiguration {
+
+    @Bean
+    @ConditionalOnAvailableEndpoint
+    public HystrixStreamEndpoint hystrixStreamEndpoint(HystrixProperties properties) {
+        return new HystrixStreamEndpoint(properties.getConfig());
+    }
+
+    @Bean
+    public HasFeatures hystrixStreamFeature() {
+        return HasFeatures.namedFeature("Hystrix Stream Servlet",
+                                        // 重点
+                                        HystrixMetricsStreamServlet.class);
+    }
+
+}
+
+/**
+ * Streams Hystrix metrics in text/event-stream format.
+ * <p>
+ * Install by:
+ * <p>
+ * 1) Including hystrix-metrics-event-stream-*.jar in your classpath.
+ * <p>
+ * 2) Adding the following to web.xml:
+ * <pre>{@code
+ * <servlet>
+ *  <description></description>
+ *  <display-name>HystrixMetricsStreamServlet</display-name>
+ *  <servlet-name>HystrixMetricsStreamServlet</servlet-name>
+ *  <servlet-class>com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServlet</servlet-class>
+ * </servlet>
+ * <servlet-mapping>
+ *  <servlet-name>HystrixMetricsStreamServlet</servlet-name>
+ *  <url-pattern>/hystrix.stream</url-pattern>
+ * </servlet-mapping>
+ * } </pre>
+ */
+// 需要配置这个类去设置映射路径
+public class HystrixMetricsStreamServlet extends HystrixSampleSseServlet {}
+```
+
+```java
+// 在配置类或启动类里面配置相关信息
+@Bean
+public ServletRegistrationBean getServlet() {
+    HystrixMetricsStreamServlet streamServlet = new HystrixMetricsStreamServlet();
+    ServletRegistrationBean registrationBean = new ServletRegistrationBean(streamServlet);
+    registrationBean.setLoadOnStartup(1);
+    // 路径默认是/actuator/hystrix.stream
+    registrationBean.addUrlMappings("/hystrix.stream");
+    registrationBean.setName("HystrixMetricsStreamServlet");
+    return registrationBean;
+```
+
+还有一个**大坑**：
+
+根据页面提示，我们应该输入：
+
+![](E:\git\WexNote\Markdown note\imgs\1591262325(1).jpg)
+
+但是其实不应该用**https！！！！！**
+
+应该用你本身访问时使用的协议：**http！！！！！**
 
 
 
+## Sleuth
+
+Spring Cloud Sleuth为服务之间调用提供**链路追踪**。通过Sleuth可以很清楚的了解到一个服务请求经过了哪些服务，每个服务处理花费了多长。从而让我们可以很方便的理清各微服务间的调用关系。此外Sleuth可以帮助我们：
+
+- 耗时分析: 通过Sleuth可以很方便的了解到每个采样请求的耗时，从而分析出哪些服务调用比较耗时;
+- 可视化错误: 对于程序未捕捉的异常，可以通过集成Zipkin服务界面上看到;
+- 链路优化: 对于调用比较频繁的服务，可以针对这些服务实施一些优化措施。
 
 
 
+**导入依赖：**
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-sleuth</artifactId>
+</dependency>
+```
 
 
 
+直接开启调用服务就会有日志打印了：
+
+![](E:\git\WexNote\Markdown note\imgs\1591274403(1).jpg)
+
+```verilog
+# 服务名  链路的唯一标识（traceId）  链路的基本单元（spanId）  不收集服务和展示 
+INFO [client,385e19698aff5c98,6f8e9fa1f2e8dec1,false] 
+```
 
 
 
+###Zipkin
 
+Zipkin 是一个**开放源代码分布式的跟踪系统**，由Twitter公司开源，它致力于收集服务的定时数据，以解决微服务架构中的延迟问题，包括数据的收集、存储、查找和展现。
 
+每个服务向zipkin报告计时数据，zipkin会根据调用关系通过Zipkin UI生成依赖关系图，显示了多少跟踪请求通过每个服务，该系统让开发者可通过一个 Web 前端轻松的收集和分析数据，例如用户每次请求服务的处理时间等，可方便的监测系统中存在的瓶颈。
 
+Zipkin提供了可插拔数据存储方式：In-Memory、MySql、Cassandra以及Elasticsearch。接下来的测试为方便直接采用In-Memory方式进行存储，生产推荐Elasticsearch。
 
+**通过docker运行zipkin：**
 
+```shell
+docker run -d -p 9411:9411 openzipkin/zipkin:2.12.3  -- 该版本比较稳定
 
+docker ps
+CONTAINER ID        IMAGE                      COMMAND                  CREATED             STATUS       
+addd32dd05da        openzipkin/zipkin:2.12.3   "/bin/bash -c 'test …"   15 seconds ago      Up 12 s
+PORTS 									NAMES
+9410/tcp, 0.0.0.0:9411->9411/tcp		  heuristic_moore
+```
 
+> 由于我使用的是toolbox，实际上是建立在一个虚拟机上，所以我们要先获取我们的**虚拟机IP**，然后通过IP访问，不能直接通过localhost进行访问，因为根本不是在这个本地机子上运行的服务器。
 
-
+![](E:\git\WexNote\Markdown note\imgs\1591278499(1).jpg)
 
 
 

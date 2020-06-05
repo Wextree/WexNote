@@ -22,7 +22,7 @@ Docker 项目的目标是实现轻量级的操作系统虚拟化解决方案。 
 
 > 在 Docker 的术语里，一个只读层被称为镜像，一个镜像是永久不会变的。
 >
-> 由于 Docker 使用一个统一文件系统，Docker 进程认为整个文件系统是以读写方式挂载的。 但是所有的变更都发生顶层的可写层，而下层的原始的只读镜像文件并未变化。由于镜像不 可写，所以镜像是无状态的。
+> 由于 Docker 使用一个统一文件系统，Docker 进程认为整个文件系统是以读写方式挂载的。 但是所有的变更都发生顶层的可写层，而下层的原始的只读镜像文件并未变化。由于镜像不可写，所以镜像是无状态的。
 
 ![](E:\git\WexNote\Markdown note\imgs\docker-filesystems-multilayer.png)
 
@@ -59,8 +59,7 @@ Docker 项目的目标是实现轻量级的操作系统虚拟化解决方案。 
   rabbitmq            3.7.7-management    2888deb59dfc        21 months ago       149MB
   ```
 
-- 
-
+  
 
 
 
@@ -119,15 +118,19 @@ docker@default:~$ docker run -d ubuntu:15.10 /bin/sh -c "while true; do echo hel
 # STATUS: 容器状态。created（已创建），restarting（重启中），running（运行中），removing（迁移中）
 # 				  paused（暂停），exited（停止），dead（死亡）
 # PORTS: 容器的端口信息和使用的连接类型（tcp\udp）。
-
-NAMES: 自动分配的容器名称。
+#NAMES: 自动分配的容器名称。
 docker@default:~$ docker ps
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS   
 8caf6dc88994        ubuntu:15.10        "/bin/sh -c 'while t…"   3 hours ago         Up 3 hours         
 PORTS			   NAMES
 				  sharp_mendel
 				  
-#　我们使用 docker stop 命令来停止容器
+# 在使用 -d 参数时，容器启动后会进入后台。此时想要进入容器，可以通过以下指令进入：
+docker@default:~$ docker attach
+docker@default:~$ docker exec # 推荐大家使用 docker exec 命令，因为此退出容器终端，不会导致容器的停止
+				  
+				  
+#　我们使用 docker stop 命令来停止容器，使用docker start启动一个已有容器
 docker@default:~$ docker stop 8caf6dc88994b6b2f14cb8b15be
 8caf6dc88994b6b2f14cb8b15be
 docker@default:~$ docker ps
