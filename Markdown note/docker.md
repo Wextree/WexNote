@@ -38,12 +38,29 @@ Docker 项目的目标是实现轻量级的操作系统虚拟化解决方案。 
 
 ## 相关操作
 
+- 查找镜像：
+
+  ```shell
+  docker@default:~$ docker search httpd
+  NAME                                    DESCRIPTION                                     STARS           
+  httpd                                   The Apache HTTP Server Project                  3039             
+      OFFICIAL            AUTOMATED
+  	[OK]
+  	
+  # 镜像删除使用 docker rmi 命令
+  docker@default:~$ docker rmi hello-world
+  ```
+
+  
+
 - 可以使用 `docker pull` 命令来从仓库获取所需要的镜像。
 
   ```shell
   # 版本省略默认为latest，仓库省略默认为官方仓库
   docker pull image-name:profile repository-address
   ```
+
+  
 
 - 使用 `docker images` 显示本地已有的镜像。
 
@@ -61,10 +78,51 @@ Docker 项目的目标是实现轻量级的操作系统虚拟化解决方案。 
 
   
 
+- 其他命令：
+
+  ```shell
+  # 当我们从 docker 镜像仓库中下载的镜像不能满足我们的需求时，我们可以通过以下两种方式对镜像进行更改。
+  # 1、从已经创建的容器中更新镜像，并且提交这个镜像
+  # 2、使用 Dockerfile 指令来创建一个新的镜像
+  # 在运行的容器内使用 apt-get update 命令进行更新。
+  
+  # 我们可以通过命令 docker commit 来提交容器副本
+  # -m: 提交的描述信息
+  # -a: 指定镜像作者
+  # e218edb10161：容器 ID
+  # runoob/ubuntu:v2: 指定要创建的目标镜像名
+  runoob@runoob:~$ docker commit -m="has update" -a="runoob" e218edb10161 runoob/ubuntu:v2
+  sha256:70bf1840fd7c0d2d8ef0a42a817eb29f854c1af8f7c59fc03ac7bdee9545aff84
+  
+  ```
+
+
+
+- 构建镜像：
+
+  ```shell
+  # 创建一个 Dockerfile 文件，其中包含一组指令来告诉 Docker 如何构建我们的镜像。
+  runoob@runoob:~$ cat Dockerfile 
+  FROM    centos:6.7
+  MAINTAINER      Fisher "fisher@sudops.com"
+  
+  RUN     /bin/echo 'root:123456' |chpasswd
+  RUN     useradd runoob
+  RUN     /bin/echo 'runoob:123456' |chpasswd
+  RUN     /bin/echo -e "LANG=\"en_US.UTF-8\"" >/etc/default/local
+  EXPOSE  22
+  EXPOSE  80
+  CMD     /usr/sbin/sshd -D
+  
+  ```
+
+  
 
 
 
 # Docker容器
+
+##简介
 
 - 它会在所有的镜像层之上增加一个**可写层**。这个可写层有运行在CPU上的进程，而且有两个不同的状态：**运行态（Running）**和**退出态（Exited）**。
 
@@ -137,19 +195,165 @@ docker@default:~$ docker ps
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
 
+- **运行一个web应用：**
+
+```shell
+# 在docker容器中运行一个 Python Flask 应用来运行一个web应用
+docker@default:~$ docker pull training/webapp
+docker@default:~$ docker run -d -P training/webapp python app.py
+
+# 我可以使用 docker port ID 或 docker port NAME 来查看容器端口的映射情况
+docker@default:~$ docker port gifted_hypatia
+5000/tcp -> 0.0.0.0:32768
+
+# docker logs [ID或者名字] 可以查看容器内部的标准输出
+docker@default:~$ docker logs 0d8439d12c0c
+ * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+192.168.99.1 - - [05/Jun/2020 07:17:49] "GET / HTTP/1.1" 200 -
+192.168.99.1 - - [05/Jun/2020 07:17:50] "GET /favicon.ico HTTP/1.1" 404 -
+
+# 使用 docker top 来查看容器内部运行的进程
+docker@default:~$ docker top gifted_hypatia
+UID                 PID                 PPID                C                   STIME               TTY 
+root                2542                2521                0                   07:14               ?   
+TIME                CMD
+00:00:00            python app.py
+
+# 使用 docker inspect 来查看 Docker 的底层信息。它会返回一个 JSON 文件记录着 Docker 容器的配置和状态信息。
+docker@default:~$ docker inspect gifted_hypatia
+[
+    {
+        "Id": "0d8439d12c0cf2cb2e22bd5c4d9a54ee3bfb490904072d7f4694408e7ef2acef",
+        "Created": "2020-06-05T07:14:55.982500525Z",
+        "Path": "python",
+        "Args": [
+            "app.py"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2542,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2020-06-05T07:14:58.726873875Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+ .........
+ 
+ # 停止WEB应用容器
+ docker@default:~$ docker stop gifted_hypatia
+ 
+ # 重启WEB应用程序
+ docker@default:~$ docker start gifted_hypatia
+ docker@default:~$ docker restart gifted_hypatia
+ 
+ # docker ps -l 查询最后一次创建的容器：
+  docker@default:~$ docker ps -l
+  CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                 
+0d8439d12c0c        training/webapp     "python app.py"     15 minutes ago      Exited (137) 2 minutes 
+PORTS               NAMES
+ago                 gifted_hypatia
+```
+
+![](E:\git\WexNote\Markdown note\imgs\1591341485(1).png)
 
 
 
+# Docker 容器连接
+
+```shell
+# 容器中可以运行一些网络应用，要让外部也可以访问这些应用，可以通过 -P 或 -p 参数来指定端口映射。
+# -P :是容器内部端口随机映射到主机的高端口。
+# -p : 是容器内部端口绑定到指定的主机端口。
+runoob@runoob:~$ docker run -d -P training/webapp python app.py
+runoob@runoob:~$ docker run -d -p 5000:5000 training/webapp python app.py
+
+# 可以指定容器绑定的网络地址，比如绑定 127.0.0.1
+runoob@runoob:~$ docker run -d -p 127.0.0.1:5001:5000 training/webapp python app.py
+
+# 默认都是绑定 tcp 端口，如果要绑定 UDP 端口，可以在端口后面加上 /udp。
+runoob@runoob:~$ docker run -d -p 127.0.0.1:5000:5000/udp training/webapp python app.py
+
+# docker port 命令可以让我们快捷地查看端口的绑定情况
+runoob@runoob:~$ docker port adoring_stonebraker 5000
+127.0.0.1:5001
+```
 
 
 
+## 容器互联
+
+端口映射并**不是唯一**把 docker 连接到另一个容器的方法。
+
+docker 有一个连接系统允许将**多个容器连接**在一起，**共享**连接信息。
+
+docker 连接会创建一个**父子关系**，其中父容器可以看到子容器的信息。
+
+```shell
+# 创建一个容器的时候，docker 会自动对它进行命名。另外，我们也可以使用 --name 标识来命名容器
+runoob@runoob:~$  docker run -d -P --name runoob training/webapp python app.py
+```
 
 
 
+- **网络：**
+
+  ```shell
+  # 列出当前的网络
+  docker@default:~$ docker network ls
+  NETWORK ID          NAME                DRIVER              SCOPE
+  89d895ee77d4        bridge              bridge              local
+  dbe2e0c72bd5        host                host                local
+  824d14abad6c        none                null                local
+  
+  # 创建一个新的 Docker 网络
+  # -d：参数指定 Docker 网络类型，有 bridge、overlay。
+  docker@default:~$ docker network create -d bridge test-net
+  16da5425ac40d32c2dc8f4fd03b7731557b49e15923ad4766e02cb4fe7cb496e
+  
+  # 运行两个容器并连接到新建的 test-net 网络
+  docker@default:~$ docker run -itd --name test1 --network test-net ubuntu /bin/bash
+  docker@default:~$ docker run -itd --name test2 --network test-net ubuntu /bin/bash
+  
+  # 进入容器test1然后pingtest2
+  # 如果该容器没有ping命令，先执行以下两个命令
+  root@c825bcb75788:/# apt-get update
+  root@c825bcb75788:/# apt install iputils-ping
+  root@c825bcb75788:/# ping test2
+  PING test2 (172.18.0.3) 56(84) bytes of data.
+  64 bytes from test2.test-net (172.18.0.3): icmp_seq=1 ttl=64 time=0.049 ms
+  64 bytes from test2.test-net (172.18.0.3): icmp_seq=2 ttl=64 time=0.041 ms
+  64 bytes from test2.test-net (172.18.0.3): icmp_seq=3 ttl=64 time=0.208 ms
+  64 bytes from test2.test-net (172.18.0.3): icmp_seq=4 ttl=64 time=0.062 ms
+  # 这样，test1 容器和 test2 容器建立了互联关系。
+  ```
 
 
 
+# Docker仓库管理
 
+```shell
+# 登录需要输入用户名和密码，登录成功后，我们就可以从 docker hub 上拉取自己账号下的全部镜像
+docker@default:~$ docker login
+
+# 退出 docker hub 可以使用以下命令：
+docker@default:~$ docker logout
+
+# 你可以通过 docker search 命令来查找官方仓库中的镜像，并利用 docker pull 命令来将它下载到本地。
+docker@default:~$ docker search ubuntu
+docker@default:~$ docker pull ubuntu 
+
+# 用户登录后，可以通过 docker push 命令将自己的镜像推送到 Docker Hub。
+docker@default:~$ docker push username/ubuntu:18.04
+```
+
+
+
+# Docker Dockerfile
 
 
 

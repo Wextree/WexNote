@@ -96,9 +96,9 @@ Spring核心的配置文件`applicationContext.xml`或者叫`bean.xml`
 
 ## Ioc
 
-![](E:\git\WexNote\Audition Points\imgs\640 (26).webp)
+![](..\Audition Points\imgs\640 (26).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (27).webp)
+![](..\Audition Points\imgs\640 (27).webp)
 
 
 
@@ -305,6 +305,222 @@ org.springframework.boot.autoconfigure.dao.PersistenceExceptionTranslationAutoCo
 3. 再进入 SpringFactoriesLoader 类的 loadFactoryNames 方法，跳转到 loadSpringFactories 方法发现 ClassLoader 类加载器指定了一个 FACTORIES_RESOURCE_LOCATION 常量。
 4. 然后利用PropertiesLoaderUtils 把 ClassLoader 扫描到的这些文件的内容包装成 properties 对象，从 properties 中获取到 EnableAutoConfiguration.class 类（类名）对应的值，然后把他们添加在容器中。
 5. 每个自动配置类都要有一定条件才可以生效，可以打开配置文件中的`#debug`功能。会输出很多信息，告诉你那些类自动启用，需要哪些类才能生效。
+
+
+
+## SpringBoot对静态资源的映射
+
+我们对SpringMVC的自动配置都在这个`WebMvcAutoConfiguration`类中。
+
+```java
+public class WebMvcAutoConfiguration {
+    // 自动配置中非常重要的类
+    public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
+        // 添加资源映射
+        @Override
+        public void addResourceHandlers(ResourceHandlerRegistry registry) {
+            if (!this.resourceProperties.isAddMappings()) {
+                logger.debug("Default resource handling disabled");
+                return;
+            }
+            // resourceProperties可以设置和资源有关的参数
+            Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+            CacheControl cacheControl = 		this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+            if (!registry.hasMappingForPattern("/webjars/**")) {
+                customizeResourceHandlerRegistration(registry.addResourceHandler("/webjars/**")
+                                                     .addResourceLocations("classpath:/META-INF/resources/webjars/")
+                                                     .setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
+            }
+            // private String staticPathPattern = "/**";
+            String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+            if (!registry.hasMappingForPattern(staticPathPattern)) {
+                // private String[] staticLocations = CLASSPATH_RESOURCE_LOCATIONS;
+                customizeResourceHandlerRegistration(registry.addResourceHandler(staticPathPattern)
+                                                     .addResourceLocations(getResourceLocations(this.resourceProperties.getStaticLocations()))
+                                                     .setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
+            }
+        }
+    }
+	
+    // 配置欢迎页映射
+    @Bean
+    public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext,
+                                                               FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+        WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(
+            new TemplateAvailabilityProviders(applicationContext), applicationContext, getWelcomePage(),
+            this.mvcProperties.getStaticPathPattern());
+        welcomePageHandlerMapping.setInterceptors(getInterceptors(mvcConversionService, mvcResourceUrlProvider));
+        welcomePageHandlerMapping.setCorsConfigurations(getCorsConfigurations());
+        return welcomePageHandlerMapping;
+    }
+    
+    // 从配置文件中获取静态欢迎页
+    private Optional<Resource> getWelcomePage() {
+        String[] locations = getResourceLocations(this.resourceProperties.getStaticLocations());
+        return Arrays.stream(locations).map(this::getIndexHtml).filter(this::isReadable).findFirst();
+    }
+}
+```
+
+- 所有的**webjars**请求都在**classpath:/META-INF/resources/webjars/**找资源。
+
+  **webjars：**以jar包的方式引入静态文件。
+
+- `private String staticPathPattern = "/**";`访问当前项目的任何资源。
+
+  ```java
+  @ConfigurationProperties(prefix = "spring.resources", ignoreUnknownFields = false)
+  public class ResourceProperties {
+      private static final String[] CLASSPATH_RESOURCE_LOCATIONS = { "classpath:/META-INF/resources/",
+  			"classpath:/resources/", "classpath:/static/", "classpath:/public/" };
+  
+  	/**
+  	 * 静态资源路径，如果没有设置，则去上面的默认配置中找
+  	 * Locations of static resources. Defaults to classpath:[/META-INF/resources/,
+  	 * /resources/, /static/, /public/].
+  	 */
+  	private String[] staticLocations = CLASSPATH_RESOURCE_LOCATIONS;
+  }
+  ```
+
+  - **classpath:/META-INF/resources/**
+  - **classpath:/resources/**
+  - **classpath:/static/**
+  - **classpath:/public/**
+  - 可以在配置文件中配置新的静态文件夹的路径
+
+- 获取欢迎页：
+
+  ```java
+  // 从静态文件夹中找所有的index.html页面，而且是被/**映射
+  private Resource getIndexHtml(String location) {
+      return this.resourceLoader.getResource(location + "index.html");
+  }
+  ```
+
+
+
+## 模板引擎Thymeleaf
+
+**导入依赖：**
+
+```xml
+<properties>
+	<!-- 官方文档提供的方式去覆盖默认的2版本 -->
+    <thymeleaf.version>3.0.10.RELEASE</thymeleaf.version>
+    <!-- 模板的支持程序，thymeleaf3版本以上需要2以上的支持程序 -->
+    <thymeleaf-layout-dialect.version>2.1.1</thymeleaf-layout-dialect.version>
+</properties>
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+```
+
+### 使用 & 语法
+
+```java
+// ThymeleafProperties
+private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
+
+public static final String DEFAULT_PREFIX = "classpath:/templates/";
+
+public static final String DEFAULT_SUFFIX = ".html";
+```
+
+- 只要我们把**html页面**放在**classpath:/templates/**路径下，themyleaf就会制动渲染。
+
+- **导入thymeleaf的名称空间，为了有提示：**
+
+  ```html
+  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+  ```
+
+- **语法：**
+
+  ```html
+  <!-- 将div里面的文本设置为，会覆盖本来的内容 -->
+  <div th:text="${hello}"></div>
+  ```
+
+  ![](imgs\2018-02-04_123955.png)
+
+- **表达式：**
+
+  ```properties
+  Simple expressions:（表达式语法）
+      Variable Expressions: ${...}：获取变量值；OGNL；
+      		1）、获取对象的属性、调用方法
+      		2）、使用内置的基本对象：
+      			#ctx : the context object.
+      			#vars: the context variables.
+                  #locale : the context locale.
+                  #request : (only in Web Contexts) the HttpServletRequest object.
+                  #response : (only in Web Contexts) the HttpServletResponse object.
+                  #session : (only in Web Contexts) the HttpSession object.
+                  #servletContext : (only in Web Contexts) the ServletContext object.
+                  
+                  ${session.foo}
+              3）、内置的一些工具对象：
+  #execInfo : information about the template being processed.
+  #messages : methods for obtaining externalized messages inside variables expressions, in the same way as they would be obtained using #{…} syntax.
+  #uris : methods for escaping parts of URLs/URIs
+  #conversions : methods for executing the configured conversion service (if any).
+  #dates : methods for java.util.Date objects: formatting, component extraction, etc.
+  #calendars : analogous to #dates , but for java.util.Calendar objects.
+  #numbers : methods for formatting numeric objects.
+  #strings : methods for String objects: contains, startsWith, prepending/appending, etc.
+  #objects : methods for objects in general.
+  #bools : methods for boolean evaluation.
+  #arrays : methods for arrays.
+  #lists : methods for lists.
+  #sets : methods for sets.
+  #maps : methods for maps.
+  #aggregates : methods for creating aggregates on arrays or collections.
+  #ids : methods for dealing with id attributes that might be repeated (for example, as a result of an iteration).
+  
+      Selection Variable Expressions: *{...}：选择表达式：和${}在功能上是一样；
+      	补充：配合 th:object="${session.user}：
+     <div th:object="${session.user}">
+      <p>Name: <span th:text="*{firstName}">Sebastian</span>.</p>
+      <p>Surname: <span th:text="*{lastName}">Pepper</span>.</p>
+      <p>Nationality: <span th:text="*{nationality}">Saturn</span>.</p>
+      </div>
+      
+      Message Expressions: #{...}：获取国际化内容
+      Link URL Expressions: @{...}：定义URL；
+      		@{/order/process(execId=${execId},execType='FAST')}
+      Fragment Expressions: ~{...}：片段引用表达式
+      		<div th:insert="~{commons :: main}">...</div>
+      		
+  Literals（字面量）
+        Text literals: 'one text' , 'Another one!' ,…
+        Number literals: 0 , 34 , 3.0 , 12.3 ,…
+        Boolean literals: true , false
+        Null literal: null
+        Literal tokens: one , sometext , main ,…
+  Text operations:（文本操作）
+      String concatenation: +
+      Literal substitutions: |The name is ${name}|
+  Arithmetic operations:（数学运算）
+      Binary operators: + , - , * , / , %
+      Minus sign (unary operator): -
+  Boolean operations:（布尔运算）
+      Binary operators: and , or
+      Boolean negation (unary operator): ! , not
+  Comparisons and equality:（比较运算）
+      Comparators: > , < , >= , <= ( gt , lt , ge , le )
+      Equality operators: == , != ( eq , ne )
+  Conditional operators:条件运算（三元运算符）
+      If-then: (if) ? (then)
+      If-then-else: (if) ? (then) : (else)
+      Default: (value) ?: (defaultvalue)
+  Special tokens:
+      No-Operation: _ 
+  ```
+
+  
 
 
 
