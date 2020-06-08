@@ -598,6 +598,169 @@ public class WebMvcAutoConfiguration {
 
 
 
+## SpringBoot创造Restful风格接口
+
+![](E:\git\WexNote\Markdown note\imgs\4807654-e2d12ab79ceed5c2.webp)
+
+### 特点：
+
+1. URL描述资源
+2. 使用HTTP方法描述行为。使用HTTP状态码来表示不同的结果
+3. 使用json交互数据
+4. RESTful只是一种风格，并不是强制的标准
+
+
+
+###实现
+
+下面我们尝试使用Spring MVC来实现一组对User对象操作的RESTful API，配合注释详细说明在Spring MVC中如何映射HTTP请求、如何传参、如何编写单元测试。
+
+![](E:\git\WexNote\Markdown note\imgs\12115116-079c163faa365326.webp)
+
+
+
+**实体定义：**
+
+```java
+@Data
+public class User {
+    private Long id;
+    private String name;
+    private Integer age;
+}
+```
+
+
+
+**实现对User对象的操作接口：**
+
+```java
+@RestController
+@RequestMapping(value="/users")
+public class UserController {
+    // 创建线程安全的Map，模拟数据库存放信息
+    static Map<Long, User> users = Collections.synchronizedMap(new HashMap<Long, User>());
+
+    @GetMapping("/")
+    public List<User> getUserList() {
+        // 还可以通过@RequestParam从页面中传递参数来进行查询条件或者翻页信息的传递
+        List<User> r = new ArrayList<User>(users.values());
+        return r;
+    }
+    
+    @PostMapping("/")
+    public String postUser(@ModelAttribute User user) {
+        // 用来创建User
+        // 除了@ModelAttribute绑定参数之外，还可以通过@RequestParam从页面中传递参数
+        users.put(user.getId(), user);
+        return "success";
+    }
+    
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        // 处理"/users/{id}"的GET请求，用来获取url中id值的User信息
+        // url中的id可通过@PathVariable绑定到函数的参数中
+        return users.get(id);
+    }
+
+    //@RequestMapping(value="/{id}", method=RequestMethod.PUT)
+    @PutMapping("/{id}")
+    public String putUser(@PathVariable Long id, @ModelAttribute User user) {
+        // 处理"/users/{id}"的PUT请求，用来更新User信息
+        User u = users.get(id);
+        u.setName(user.getName());
+        u.setAge(user.getAge());
+        users.put(id, u);
+        return "success";
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteUser(@PathVariable Long id) {
+        // 处理"/users/{id}"的DELETE请求，用来删除User
+        users.remove(id);
+        return "success";
+    }
+
+}
+```
+
+
+
+### Controller单元测试方法
+
+> 参考文档：http://tengj.top/2017/12/28/springboot12/#Controller
+
+有时候需要对Controller层（API）做测试，这时候就得用到MockMvc了，你可以**不必启动**工程就能测试这些接口。
+
+MockMvc实现了**对Http请求的模拟**，能够直接使用网络的形式，转换到Controller的调用，这样可以使得测试速度快、**不依赖网络环境**，而且提供了一套**验证的工具**，这样可以使得请求的验证统一而且很方便。
+
+```java
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class UserControllerTest {
+    @Autowired
+    private WebApplicationContext wac;
+
+    private MockMvc mvc;
+
+    // 使用MockMvc的时候需要先用MockMvcBuilders使用构建MockMvc对象
+//    @Before
+//    public void setupMockMvc(){
+//        System.out.println("初始化...");
+//        mvc = MockMvcBuilders.webAppContextSetup(wac).build(); //初始化MockMvc对象
+//        System.out.println("初始化...");
+//    }
+
+    @Test
+    public void testUserController() throws Exception {
+        mvc = MockMvcBuilders.webAppContextSetup(wac).build(); //初始化MockMvc对象
+        // 1、get查一下user列表，应该为空
+        mvc.perform(MockMvcRequestBuilders.get("/users/"))
+                // 方法看请求的状态响应码是否为200如果不是则抛异常，测试不通过
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                // 对比结果
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("[]")));
+
+        // 2、post提交一个user
+        mvc.perform(MockMvcRequestBuilders.post("/users/").param("id", "1")
+                .param("name", "测试大师")
+                .param("age", "20"))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("success")));
+
+        // 3、get获取user列表，应该有刚才插入的数据
+        mvc.perform(MockMvcRequestBuilders.get("/users/"))
+                // 方法看请求的状态响应码是否为200如果不是则抛异常，测试不通过
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("[{\"id\":1,\"name\":\"wexx\",\"age\":20}]")));
+
+
+        // 4、put修改id为1的user
+        mvc.perform(MockMvcRequestBuilders.put("/users/1")
+                .param("name", "测试终极大师")
+                .param("age", "30"))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("success")));
+
+        // 5、get一个id为1的user
+        mvc.perform(MockMvcRequestBuilders.get("/users/1"))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("{\"id\":1,\"name\":\"wex\",\"age\":30}")));
+
+        // 6、del删除id为1的user
+        mvc.perform(MockMvcRequestBuilders.delete("/users/1"))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("success")));
+
+        // 7、get查一下user列表，应该为空
+        mvc.perform(MockMvcRequestBuilders.get("/users/"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.equalTo("[]")));
+
+    }
+
+}
+
+```
+
+
+
 
 
 
