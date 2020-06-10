@@ -308,6 +308,282 @@ org.springframework.boot.autoconfigure.dao.PersistenceExceptionTranslationAutoCo
 
 
 
+## SpringBoot自动配置流程
+
+> SpringBoot 2.3.0.RELEASE
+
+**打上断点：**
+
+![](E:\git\WexNote\Markdown note\imgs\1591709222(1).png)
+
+```java
+// step into
+public static ConfigurableApplicationContext run(Class<?> primarySource, String... args) {
+		return run(new Class<?>[] { primarySource }, args);
+}
+
+// 先创建Application，后执行run
+public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
+		return new SpringApplication(primarySources).run(args);
+}
+```
+
+```java
+// 初始化SpringApplication
+public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		this.resourceLoader = resourceLoader;
+    	// 判空
+		Assert.notNull(primarySources, "PrimarySources must not be null");
+    	// 把我们的主配置类给存起来
+		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+    	// 判断是不是web应用，通过判断该应用是不是有对应的类，像javax.servlet.Servlet
+		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+    	// 获取META-INF/spring.factories路径下的ApplicationContextInitializer配置，先保存起来
+		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+    	// 获取META-INF/spring.factories路径下的ApplicationListener配置，先保存起来
+		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+    	// 找main方法的类
+		this.mainApplicationClass = deduceMainApplicationClass();
+}
+
+// 获取META-INF/spring.factories路径下的配置，先保存起来
+private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
+    ClassLoader classLoader = getClassLoader();
+    // Use names and ensure unique to protect against duplicates
+    Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+    List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+    AnnotationAwareOrderComparator.sort(instances);
+    return instances;
+}
+
+// 和下面方法一起获取对应的配置
+public static List<String> loadFactoryNames(Class<?> factoryType, @Nullable ClassLoader classLoader) {
+    String factoryTypeName = factoryType.getName();
+    return (List)loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
+}
+
+private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
+    MultiValueMap<String, String> result = (MultiValueMap)cache.get(classLoader);
+    if (result != null) {
+        return result;
+    } else {
+        try {
+            // 找到该路径
+            Enumeration<URL> urls = classLoader != null ? classLoader.getResources("META-INF/spring.factories") : ClassLoader.getSystemResources("META-INF/spring.factories");
+            LinkedMultiValueMap result = new LinkedMultiValueMap();
+
+            while(urls.hasMoreElements()) {
+                URL url = (URL)urls.nextElement();
+                UrlResource resource = new UrlResource(url);
+                Properties properties = PropertiesLoaderUtils.loadProperties(resource);
+                Iterator var6 = properties.entrySet().iterator();
+
+                while(var6.hasNext()) {
+                    Entry<?, ?> entry = (Entry)var6.next();
+                    String factoryTypeName = ((String)entry.getKey()).trim();
+                    String[] var9 = StringUtils.commaDelimitedListToStringArray((String)entry.getValue());
+                    int var10 = var9.length;
+
+                    for(int var11 = 0; var11 < var10; ++var11) {
+                        String factoryImplementationName = var9[var11];
+                        result.add(factoryTypeName, factoryImplementationName.trim());
+                    }
+                }
+            }
+
+            cache.put(classLoader, result);
+            return result;
+        } catch (IOException var13) {
+            throw new IllegalArgumentException("Unable to load factories from location [META-INF/spring.factories]", var13);
+        }
+    }
+}
+```
+
+```factories
+# META-INF/spring.factories
+# Initializers
+org.springframework.context.ApplicationContextInitializer=\
+org.springframework.boot.autoconfigure.SharedMetadataReaderFactoryContextInitializer,\
+org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener
+```
+
+```java
+// 开始运行
+public ConfigurableApplicationContext run(String... args) {
+    // 停止监听
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start();
+    ConfigurableApplicationContext context = null;
+    Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+    configureHeadlessProperty();
+    // 从类路径META-INF/spring.factories下获取SpringApplicationRunListeners，并且打开
+    SpringApplicationRunListeners listeners = getRunListeners(args);
+    // 调用所有的listener里面的回调方法starting
+    listeners.starting();
+    try {
+        // 封装命令行参数
+        ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+        // 准备环境
+        ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+        configureIgnoreBeanInfo(environment);
+        // 打印Spring图标
+        Banner printedBanner = printBanner(environment);
+        // 创建Ioc容器
+        context = createApplicationContext();
+        exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
+                                                         new Class[] { ConfigurableApplicationContext.class }, context);
+        // 通过刚才我们获取的环境和初始化器，监听器等，为Ioc配置上下文
+        prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+        // 刷新Ioc容器，也就是我们Ioc容器的初始化，包括我们自己定义的bean，config之类的
+        // 如果是web应用，还会创建嵌入式的tomcat应用
+        refreshContext(context);
+        // 从Ioc容器中获取所有的ApplicationRunner，CommandLineRunner（有优先级关系），调用它们的回调方法
+        afterRefresh(context, applicationArguments);
+        stopWatch.stop();
+        // 日志处理
+        if (this.logStartupInfo) {
+            new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
+        }
+        // 最后调用所有SpringApplicationRunListener的回调方法started	
+        listeners.started(context);
+        callRunners(context, applicationArguments);
+    }
+    catch (Throwable ex) {
+        handleRunFailure(context, ex, exceptionReporters, listeners);
+        throw new IllegalStateException(ex);
+    }
+
+    try {
+        listeners.running(context);
+    }
+    catch (Throwable ex) {
+        handleRunFailure(context, ex, exceptionReporters, null);
+        throw new IllegalStateException(ex);
+    }
+    // 结束返回Ioc容器
+    return context;
+}
+
+// 现在看到getSpringFactoriesInstances，就知道是从类路径下获取
+private SpringApplicationRunListeners getRunListeners(String[] args) {
+    Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+    return new SpringApplicationRunListeners(logger,
+                                             getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
+}
+
+// 准备环境对应的方法
+private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
+                                                   ApplicationArguments applicationArguments) {
+    // Create and configure the environment
+    // 获取或者创建环境并且进行配置
+    ConfigurableEnvironment environment = getOrCreateEnvironment();
+    configureEnvironment(environment, applicationArguments.getSourceArgs());
+    ConfigurationPropertySources.attach(environment);
+    // 调用所有SpringApplicationRunListeners的回调方法environmentPrepared()
+    listeners.environmentPrepared(environment);
+    bindToSpringApplication(environment);
+    // 判断如果是web环境，还需要帮我们转换成web环境
+    if (!this.isCustomEnvironment) {
+        environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
+                                                                                               deduceEnvironmentClass());
+    }
+    ConfigurationPropertySources.attach(environment);
+    return environment;
+}
+
+// 创建Ioc容器
+protected ConfigurableApplicationContext createApplicationContext() {
+    Class<?> contextClass = this.applicationContextClass;
+    if (contextClass == null) {
+        try {
+            // 判断是什么类型的应用，创建对应的容器
+            switch (this.webApplicationType) {
+                case SERVLET:
+                    contextClass = Class.forName(DEFAULT_SERVLET_WEB_CONTEXT_CLASS);
+                    break;
+                case REACTIVE:
+                    contextClass = Class.forName(DEFAULT_REACTIVE_WEB_CONTEXT_CLASS);
+                    break;
+                default:
+                    contextClass = Class.forName(DEFAULT_CONTEXT_CLASS);
+            }
+        }
+        catch (ClassNotFoundException ex) {
+            throw new IllegalStateException(
+                "Unable create a default ApplicationContext, please specify an ApplicationContextClass", ex);
+        }
+    }
+    // 利用BeanUtils通过反射创建出Ioc容器
+    return (ConfigurableApplicationContext) BeanUtils.instantiateClass(contextClass);
+}
+
+// 准备上下文
+private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
+                            SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
+    // 设置保存环境
+    context.setEnvironment(environment);
+    // 注册几个小组件
+    postProcessApplicationContext(context);
+    // 调用初始化时获取的初始化器的initialize方法
+    applyInitializers(context);
+    // 调用SpringApplicationRunListeners的回调方法contextPrepared
+    listeners.contextPrepared(context);
+    // 准备日志
+    if (this.logStartupInfo) {
+        logStartupInfo(context.getParent() == null);
+        logStartupProfileInfo(context);
+    }
+    // Add boot specific singleton beans
+    // 添加启动类的一些单例对象
+    ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+    beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+    if (printedBanner != null) {
+        beanFactory.registerSingleton("springBootBanner", printedBanner);
+    }
+    if (beanFactory instanceof DefaultListableBeanFactory) {
+        ((DefaultListableBeanFactory) beanFactory)
+        .setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
+    }
+    if (this.lazyInitialization) {
+        context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
+    }
+    // Load the sources
+    // 获取主类
+    Set<Object> sources = getAllSources();
+    Assert.notEmpty(sources, "Sources must not be empty");
+    load(context, sources.toArray(new Object[0]));
+    // 最后一步，所有的listener回调contextLoaded，表示已经启动完成了
+    listeners.contextLoaded(context);
+}
+
+// afterRefresh调用的方法
+private void callRunners(ApplicationContext context, ApplicationArguments args) {
+    List<Object> runners = new ArrayList<>();
+    runners.addAll(context.getBeansOfType(ApplicationRunner.class).values());
+    runners.addAll(context.getBeansOfType(CommandLineRunner.class).values());
+    AnnotationAwareOrderComparator.sort(runners);
+    for (Object runner : new LinkedHashSet<>(runners)) {
+        if (runner instanceof ApplicationRunner) {
+            callRunner((ApplicationRunner) runner, args);
+        }
+        if (runner instanceof CommandLineRunner) {
+            callRunner((CommandLineRunner) runner, args);
+        }
+    }
+}
+```
+
+**经过listener starting之后：(有十个监听器启动)**
+
+![](E:\git\WexNote\Markdown note\imgs\1591712167(1).png)
+
+
+
+
+
+
+
 ## SpringBoot对静态资源的映射
 
 我们对SpringMVC的自动配置都在这个`WebMvcAutoConfiguration`类中。
@@ -602,7 +878,7 @@ public class WebMvcAutoConfiguration {
 
 ![](E:\git\WexNote\Markdown note\imgs\4807654-e2d12ab79ceed5c2.webp)
 
-### 特点：
+### 特点
 
 1. URL描述资源
 2. 使用HTTP方法描述行为。使用HTTP状态码来表示不同的结果
