@@ -344,25 +344,502 @@ Extra是EXPLAIN输出中另外一个很重要的列，该列显示MySQL在查询
 
 
 
+# SQL练习
+
+首先建表，主要有四个表：
+
+- **学生表（Student）**
+- **课程表（Course）**
+- **教师表（Teacher）**
+- **成绩表（SC）**
+
+在分别介绍一下每个表的字段 ：
+
+- **学生表（Student ）有四个字段 sid--学生id，sname--学生姓名，sage--学生年龄，ssex--学生性别**
+
+- **课程表（Course）有三个字段，cid--课程id，cname--课程名，tid--教师id**
+
+- **教师表（Teacher）有两个字段，tid--教师id，tname--教师姓名**
+
+- **成绩表（SC）有三个字段，sid--学生id，cid--课程id，score--成绩**
+
+```mysql
+# 建表语句
+# 学生表
+create table Student(
+	sid int primary key auto_increment,
+    sname varchar(10),
+    sage datetime,ssex nvarchar(10)
+    );
+insert into Student values('01' , '赵雷' , '1990-01-01' , '男');
+insert into Student values('02' , '钱电' , '1990-12-21' , '男');
+insert into Student values('03' , '孙风' , '1990-05-20' , '男');
+insert into Student values('04' , '李云' , '1990-08-06' , '男');
+insert into Student values('05' , '周梅' , '1991-12-01' , '女');
+insert into Student values('06' , '吴兰' , '1992-03-01' , '女');
+insert into Student values('07' , '郑竹' , '1989-07-01' , '女');
+insert into Student values('08' , '王菊' , '1990-01-20' , '女');
+
+# 教师表
+create table Teacher(
+	tid int primary key auto_increment,
+    tname varchar(10)
+    );
+insert into Teacher values('01' , '张三');
+insert into Teacher values('02' , '李四');
+insert into Teacher values('03' , '王五');
+
+# 课程表
+create table Course(
+	cid int primary key auto_increment,
+    cname varchar(10),
+    tid int,
+    foreign key(tid) references teacher(tid)
+    );
+insert into Course values('01' , '语文' , '02');
+insert into Course values('02' , '数学' , '01');
+insert into Course values('03' , '英语' , '03');
+
+# 选修成绩表
+create table SC(
+	sid int,
+    cid int,
+    score int,
+    primary key(sid, cid),
+    foreign key(sid) references student(sid),
+    foreign key(cid) references course(cid)
+    );
+insert into SC values('01' , '01' , 80);
+insert into SC values('01' , '02' , 90);
+insert into SC values('01' , '03' , 99);
+insert into SC values('02' , '01' , 70);
+insert into SC values('02' , '02' , 60);
+insert into SC values('02' , '03' , 80);
+insert into SC values('03' , '01' , 80);
+insert into SC values('03' , '02' , 80);
+insert into SC values('03' , '03' , 80);
+insert into SC values('04' , '01' , 50);
+insert into SC values('04' , '02' , 30);
+insert into SC values('04' , '03' , 20);
+insert into SC values('05' , '01' , 76);
+insert into SC values('05' , '02' , 87);
+insert into SC values('06' , '01' , 31);
+insert into SC values('06' , '03' , 34);
+insert into SC values('07' , '02' , 89);
+insert into SC values('07' , '03' , 98);
+```
 
 
 
+1.查询"01"课程比"02"课程成绩高的学生的信息及课程分数
+
+```mysql
+# 先查出1课程和2课程的成绩表，然后进行相应比较，最后使用右外连接和学生信息匹配起来
+select * 
+from student right join
+(select t1.sid,class1,class2
+ from (select sid, score as class1 from sc where cid = 1) as t1,
+	  (select sid, score as class2 from sc where cid = 2) as t2
+ where t1.sid = t2.sid and class1 > class2
+) as cs
+on cs.sid = student.sid; 
+
+---------------------------------------------------
+2	钱电	1990-12-21 00:00:00	男	2	70	60
+4	李云	1990-08-06 00:00:00	男	4	50	30
+```
 
 
 
+2.1 查询存在" 01 "课程但可能不存在" 02 "课程的情况(不存在时显示为 null )
+
+```mysql
+# 选择两个分别选择课程1和课程2的学员表，然后把这两个表join起来
+SELECT *
+FROM(SELECT *
+      FROM sc
+      WHERE sc.cid = '01' ) t1 
+LEFT JOIN 
+ 	(SELECT *
+  	 FROM sc 
+ 	 WHERE sc.cid = '02') t2
+ON t1.sid = t2.sid ;
+
+-----------------------------------
+1	1	80	1	2	90
+2	1	70	2	2	60
+3	1	80	3	2	80
+4	1	50	4	2	30
+5	1	76	5	2	87
+6	1	31	null ...		
+```
+
+2.2 查询同时存在01和02课程的情况
+
+```mysql
+# 先查询1课程的信息，再查出2课程的信息，然后从这两张表中找到相同学号的信息匹配起来
+select * 
+from (select * from sc where cid = 1) as t1,
+	 (select * from sc where cid = 2) as t2
+where t1.sid = t2.sid;
+
+------------------------------------------
+1	1	80	1	2	90
+2	1	70	2	2	60
+3	1	80	3	2	80
+4	1	50	4	2	30
+5	1	76	5	2	87
+```
+
+2.3 查询选择了02课程但没有01课程的情况
+
+```mysql
+# 先查出选了2课程的所有信息，然后使用not in剔除掉所有的选了1课程的信息
+select * 
+from (select * from sc where cid = 2) as t
+where t.sid not in (select sid from sc where cid = 1);
+
+-----------------------------------------
+7	2	89
+```
 
 
 
+3. 查询平均成绩大于等于 60 分的同学的学生编号和学生姓名和平均成绩
+
+```mysql
+# 先将学生表和成绩表按照学号连接起来，然后分组按要求求得
+select sc.sid,sname,avg(score) as avg
+from student, sc
+where student.sid = sc.sid
+group by sc.sid
+having avg(score) >= 60;	
+
+----------------------------------
+1	赵雷	89.6667
+2	钱电	70.0000
+3	孙风	80.0000
+5	周梅	81.5000
+7	郑竹	93.5000
+```
 
 
 
+4.查询在 SC 表存在成绩的学生信息
+
+```mysql
+# 两张表通过id连接，然后求单独值
+# 但是mysql无法通过这样，因为它是所有列都相同才算相同
+# 详细请看https://blog.csdn.net/guocuifang655/article/details/3993612
+SELECT DISTINCT student.*
+FROM sc,student
+WHERE student.sid = sc.sid ;
+
+#修改为：
+SELECT student.*
+FROM sc,student
+WHERE student.sid = sc.sid 
+group by student.sid;
+```
 
 
 
+5.查询所有同学的学生编号、学生姓名、选课总数、所有课程的成绩总和
+
+```mysql
+SELECT s.sid,s.sname,COUNT(sc.cid),SUM(score)
+FROM student AS s INNER JOIN sc 
+ON s.sid = sc.sid
+GROUP BY sc.sid;
+```
 
 
 
+6.查询「李」姓老师的数量
 
+```mysql
+SELECT count(*)
+FROM teacher
+WHERE tname like '李%';
+```
+
+
+
+7.查询学过「张三」老师授课的同学的信息
+
+```mysql
+# 多重连接
+SELECT *
+from student
+where sid in (select sid 
+			  from sc,teacher,course
+              where teacher.tname = '张三' 
+			    and teacher.tid = course.tid
+                and sc.cid = course.cid);
+                
+------------------------------------------------------
+1	赵雷	1990-01-01 00:00:00	男
+2	钱电	1990-12-21 00:00:00	男
+3	孙风	1990-05-20 00:00:00	男
+4	李云	1990-08-06 00:00:00	男
+5	周梅	1991-12-01 00:00:00	女
+7	郑竹	1989-07-01 00:00:00	女
+```
+
+
+
+8.查询没有学全所有课程的同学的信息
+
+```mysql
+# 先找出科目的次数然后再一起比较
+SELECT *
+from student
+where sid in (select sid 
+			  from sc
+              group by sid
+              having count(cid) < (select count(*) from course)
+              );
+              
+-----------------------------------------------------------
+5	周梅	1991-12-01 00:00:00	女
+6	吴兰	1992-03-01 00:00:00	女
+7	郑竹	1989-07-01 00:00:00	女
+
+# 其他方法
+SELECT s.*
+FROM student AS s
+WHERE s.sid NOT IN (SELECT sc.sid
+FROM sc 
+GROUP BY sc.sid
+HAVING COUNT(cid) >= 3);
+			
+```
+
+
+
+9.查询至少有一门课与学号为" 01 "的同学所学相同的同学的信息
+
+```mysql
+# 首先要查询出01同学所学的课程，然后使用cid in 01同学的课程，并排除sid=01的同学
+select student.*
+from student,sc
+where sc.sid = student.sid
+  and sc.cid in (select cid from sc where sid = 1)
+  and sc.sid != 1
+group by sc.sid;
+
+--------------------------------------------------------
+2	钱电	1990-12-21 00:00:00	男
+3	孙风	1990-05-20 00:00:00	男
+4	李云	1990-08-06 00:00:00	男
+5	周梅	1991-12-01 00:00:00	女
+6	吴兰	1992-03-01 00:00:00	女
+7	郑竹	1989-07-01 00:00:00	女
+```
+
+
+
+10.查询和" 01 "号的同学学习的课程完全相同的其他同学的信息
+
+```mysql
+  # 先通过sc表找出选修和1号同学同程的信息
+  # 通过按学号分组判断是否该学号选修的科目数和1号同学一致来判断完全选修到1号同学的科目
+  # 接下来用IN来找出对应的学生信息，最后剔除1号同学的信息即可
+  SELECT * 
+  FROM student 
+  WHERE sid IN 
+    (SELECT sid 
+     FROM
+      (SELECT * 
+       FROM sc AS a 
+       WHERE cid IN 
+        (SELECT cid 
+         FROM sc 
+         WHERE sid = 01)
+		) b 
+    GROUP BY sid 
+    HAVING COUNT(cid) = 
+      (SELECT COUNT(cid) 
+       FROM sc c 
+       WHERE sid = 01)
+	) 
+    AND sid != 01 ;  
+```
+
+
+
+11.查询没学过"张三"老师讲授的任一门课程的学生姓名
+
+```mysql
+# 先要查询出张三老师的教授课程，然后利用not in 来找到学生的id
+select sid,sname
+from student
+where sid not in 
+	(select sid
+	 from sc right join course on sc.cid = course.cid
+     where tid = (select tid from teacher where tname='张三'));
+     
+---------------
+6	吴兰
+8	王菊
+```
+
+
+
+12.查询两门及其以上不及格课程的同学的学号，姓名及其平均成绩
+
+```mysql
+# 先将成绩表和学生表做一个连接，找出所有不及格的记录，按学号分组后找出所有不及格多于两门课的学生
+select student.sid,sname,avg(score) as avg
+from student,sc
+where student.sid = sc.sid
+  and score < 60
+group by sc.sid
+having count(score) >= 2;
+```
+
+
+
+13.检索" 01 "课程分数小于 60，按分数降序排列的学生信息
+
+```mysql
+select student.*,score
+from sc,student
+where cid = 1
+  and score < 60
+  and sc.sid = student.sid
+order by score desc;
+
+----------------------------
+4	李云	1990-08-06 00:00:00	男	50
+6	吴兰	1992-03-01 00:00:00	女	31
+```
+
+
+
+14.按平均成绩从高到低显示所有学生的所有课程的成绩以及平均成绩
+
+```mysql
+# 找出每个学生的平均成绩做连接
+select sc.*,avg
+from sc left join
+	(select sid,avg(score) as avg from sc group by sid) as t
+	on sc.sid = t.sid
+order by avg desc;
+
+---------------------------------------------
+7	2	89	93.5000
+7	3	98	93.5000
+1	2	90	89.6667
+1	3	99	89.6667
+1	1	80	89.6667
+5	1	76	81.5000
+5	2	87	81.5000
+3	2	80	80.0000
+3	3	80	80.0000
+3	1	80	80.0000
+2	1	70	70.0000
+2	2	60	70.0000
+2	3	80	70.0000
+4	1	50	33.3333
+4	2	30	33.3333
+4	3	20	33.3333
+6	1	31	32.5000
+6	3	34	32.5000
+```
+
+
+
+15.查询各科成绩最高分、最低分和平均分,以如下形式显示：
+
+以如下形式显示：课程 ID，课程 name，最高分，最低分，平均分，及格率，中等率，优良率，优秀率
+
+及格为**>=60**，中等为：**70-80**，优良为：**80-90**，优秀为：**>=90**
+
+要求输出课程号和选修人数，查询结果按人数降序排列，若人数相同，按课程号**升序排列**
+
+```mysql
+SELECT 
+  cid AS 课程ID,
+  COUNT(sid) AS 课程人数,
+  MAX(score) AS 最高分,
+  MIN(score) AS 最低分,
+  AVG(score) AS 平均分,
+  SUM(及格) / COUNT(sid) AS 及格率,
+  SUM(中等) / COUNT(sid) AS 中等率,
+  SUM(优良) / COUNT(sid) AS 优良率,
+  SUM(优秀) / COUNT(sid) AS 优秀率 
+FROM
+  (SELECT *,
+    CASE
+      WHEN score >= 60 
+      THEN 1 
+      ELSE 0 
+    END AS 及格,
+    CASE
+      WHEN score >= 70 
+      AND score < 80 
+      THEN 1 
+      ELSE 0 
+    END AS 中等,
+    CASE
+      WHEN score >= 80 
+      AND score < 90 
+      THEN 1 
+      ELSE 0 
+    END AS 优良,
+    CASE
+      WHEN score >= 90 
+      THEN 1 
+      ELSE 0 
+    END AS 优秀 
+  FROM sc) a 
+GROUP BY cid 
+ORDER BY COUNT(sid) DESC,cid ;
+
+----------------------------------------------------------------
+1	6	80	31	64.5000	0.6667	0.3333	0.3333	0.0000
+2	6	90	30	72.6667	0.8333	0.0000	0.5000	0.1667
+3	6	99	20	68.5000	0.6667	0.0000	0.3333	0.3333
+```
+
+
+
+16.按各科成绩进行排序，并显示排名， Score 重复时保留名次空缺
+
+```mysql
+# 通过两个成绩表自连接，然后计数比它分数少的有多少个来实现排名
+SELECT a.*, COUNT(a.score) AS 排名 
+FROM sc AS a LEFT JOIN sc AS b 
+    ON a.cid = b.cid 
+    AND a.score < b.score 
+GROUP BY a.cid,a.sid 
+ORDER BY a.cid, 排名 ;
+
+-------------------------------------------
+1	1	80	1
+3	1	80	1
+5	1	76	2
+2	1	70	3
+4	1	50	4
+6	1	31	5
+1	2	90	1
+7	2	89	1
+5	2	87	2
+3	2	80	3
+2	2	60	4
+4	2	30	5
+1	3	99	1
+7	3	98	1
+3	3	80	2
+2	3	80	2
+6	3	34	4
+4	3	20	5
+```
+
+
+
+17.
 
 
 
