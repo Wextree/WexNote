@@ -56,9 +56,9 @@ Documented 注解表明这个注解应该被 `javadoc`工具记录. 默认情况
 
 ![](E:\git\WexNote\Audition Points\imgs\640 (10).jpg)
 
-- Spring Core  spring的核心功能： IOC容器, 解决对象创建及依赖关系
+- **Spring Core**  spring的核心功能： IOC容器, 解决对象创建及依赖关系
 
-- Spring Web  Spring对web模块的支持。
+- **Spring Web**  Spring对web模块的支持。
 
 - - 可以与struts整合,让struts的action创建交给spring
   - spring mvc模式
@@ -1098,11 +1098,11 @@ public class UserControllerTest {
 
 ```xml
 <parent>
-        <groupId>org.springframework.boot</groupId>
-    	<!-- 使用最新版springboot -->
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.3.0.RELEASE</version>
-        <relativePath/> <!-- lookup parent from repository -->
+    <groupId>org.springframework.boot</groupId>
+    <!-- 使用最新版springboot -->
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.3.0.RELEASE</version>
+    <relativePath/> <!-- lookup parent from repository -->
 </parent>
 
 <properties>

@@ -808,40 +808,230 @@ ORDER BY COUNT(sid) DESC,cid ;
 16.按各科成绩进行排序，并显示排名， Score 重复时保留名次空缺
 
 ```mysql
-# 通过两个成绩表自连接，然后计数比它分数少的有多少个来实现排名
-SELECT a.*, COUNT(a.score) AS 排名 
-FROM sc AS a LEFT JOIN sc AS b 
-    ON a.cid = b.cid 
-    AND a.score < b.score 
-GROUP BY a.cid,a.sid 
-ORDER BY a.cid, 排名 ;
-
--------------------------------------------
-1	1	80	1
-3	1	80	1
-5	1	76	2
-2	1	70	3
-4	1	50	4
-6	1	31	5
-1	2	90	1
-7	2	89	1
-5	2	87	2
-3	2	80	3
-2	2	60	4
-4	2	30	5
-1	3	99	1
-7	3	98	1
-3	3	80	2
-2	3	80	2
-6	3	34	4
-4	3	20	5
+# 先将成绩进行排序，然后再统计比它多的成绩
+SELECT a.*, 
+	(select count(distinct score) 
+     from sc as b 
+     where a.cid = b.cid and b.score >= a.score) as 排名
+FROM sc AS a 
+ORDER BY a.cid, a.score desc;
 ```
 
 
 
-17.
+17.按各科成绩进行行排序，并显示排名， Score 重复时合并名次
+
+```mysql
+SELECT a.*, 
+	(select count(score)+1
+     from sc as b 
+     where a.cid = b.cid and b.score > a.score) as 排名
+FROM sc AS a 
+ORDER BY a.cid, a.score desc;
+```
 
 
 
+18.查询学生的总成绩，并进行排名
 
+```mysql
+# 引入一个用户变量
+# 总分重复时保留名次空缺
+SELECT a.*, @rank := @rank+1 as 排名
+from 
+	(select sid, cid, sum(score)
+     from sc
+     group by sid
+     order by sum(score) desc) as a,
+(select @rank := 0) b;
+
+
+# 总分重复时不保留名次空缺
+SELECT a.*,
+  CASE
+    WHEN @fscore = a.sumscore 
+    THEN @rank 
+    WHEN @fscore := a.sumscore 
+    THEN @rank := @rank + 1 
+  END AS 排名 
+FROM
+  (SELECT sc.sid, SUM(score) AS sumscore 
+   FROM sc 
+   GROUP BY sid 
+   ORDER BY SUM(score) DESC) AS a,
+  (SELECT 
+    @rank := 0,
+    @fscore := NULL) AS t ;
+    
+
+```
+
+
+
+19.统计各科成绩各分数段人数：课程编号，课程名称，[100-85]，[85-70]，[70-60]，[60-0] 及所占百分比
+
+```mysql
+SELECT sc.cid AS 课程编号, cname AS 课程名称,
+  SUM(
+    CASE
+      WHEN score >= 0 
+      AND score <= 60 
+      THEN 1 
+      ELSE 0 
+    END
+  ) AS '[60-0]',
+  SUM(
+    CASE
+      WHEN score >= 0 
+      AND score <= 60 
+      THEN 1 
+      ELSE 0 
+    END
+  ) / COUNT(sid) AS '[60-0]百分比',
+  SUM(
+    CASE
+      WHEN score >= 60 
+      AND score <= 70 
+      THEN 1 
+      ELSE 0 
+    END
+  ) AS '[70-60]',
+  SUM(
+    CASE
+      WHEN score >= 60 
+      AND score <= 70 
+      THEN 1 
+      ELSE 0 
+    END
+  ) / COUNT(sid) AS '[70-60]百分比',
+  SUM(
+    CASE
+      WHEN score >= 70 
+      AND score <= 85 
+      THEN 1 
+      ELSE 0 
+    END
+  ) AS '[85-70]',
+  SUM(
+    CASE
+      WHEN score >= 70 
+      AND score <= 85 
+      THEN 1 
+      ELSE 0 
+    END
+  ) / COUNT(sid) AS '[85-70]百分比',
+  SUM(
+    CASE
+      WHEN score >= 85 
+      AND score <= 100 
+      THEN 1 
+      ELSE 0 
+    END
+  ) AS '[100-85]',
+  SUM(
+    CASE
+      WHEN score >= 85 
+      AND score <= 100 
+      THEN 1 
+      ELSE 0 
+    END
+  ) / COUNT(sid) AS '[100-85]百分比' 
+FROM sc JOIN course ON sc.cid = course.cid 
+GROUP BY sc.cid,cname ;
+```
+
+
+
+20.查询各科成绩前三名的记录
+
+```mysql
+SELECT a.*,COUNT(b.score) +1 AS ranking
+FROM SC AS a LEFT JOIN SC AS b 
+ON a.cid = b.cid AND a.score<b.score
+GROUP BY a.cid,a.sid
+HAVING ranking <= 3
+ORDER BY a.cid,ranking;
+```
+
+
+
+21.查询每门课程被选修的学生数
+
+```mysql
+SELECT cid,COUNT(sid) AS num
+FROM  sc 
+GROUP BY cid;
+```
+
+
+
+22.查询出只选修两门课程的学生学号和姓名
+
+```mysql
+select s.sid,sname
+from student as s,
+	(select sid from sc
+     group by sid
+     having count(cid) = 2) as a
+where s.sid = a.sid;
+
+--------------------------------
+5	周梅
+6	吴兰
+7	郑竹
+```
+
+
+
+23.查询男生、女生人数
+
+```mysql
+SELECT ssex,COUNT(ssex) as sum 
+FROM student
+GROUP BY ssex;
+
+--------------------
+男	4
+女	4
+```
+
+
+
+24.查询名字中含有「风」字的学生信息
+
+```mysql
+SELECT *
+FROM student
+WHERE sname LIKE '%风%';
+```
+
+
+
+25.查询同名同姓学生名单，并统计同名人数
+
+```mysql
+SELECT sname,COUNT(sname) AS 同名人数
+FROM student
+GROUP BY sname
+HAVING 同名人数>1;
+```
+
+
+
+26.查询 1990 年出生的学生名单
+
+```mysql
+SELECT *
+FROM student
+WHERE YEAR(sage) >= 1990 and year(sage) < 2000;
+
+------------------------------------------------
+SELECT *
+FROM student
+WHERE YEAR(sage) LIKE '1990%';
+```
+
+
+
+27.查询每门课程的平均成绩，结果按平均成绩降序排列，平均成绩相同时，按课程编
 
