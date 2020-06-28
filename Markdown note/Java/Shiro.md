@@ -38,7 +38,7 @@
 
 **Shiro功能的框架图：**
 
-![](imgs\v2-e72930a8351ccf1590779ea87ac5cb65_720w.jpg)
+![](../imgs\v2-e72930a8351ccf1590779ea87ac5cb65_720w.jpg)
 
 **Authentication（认证）, Authorization（授权）, Session Management（会话管理）, Cryptography（加密）**被 Shiro 框架的开发团队称之为应用安全的四大基石：
 
@@ -66,11 +66,11 @@
 
 
 
-![](imgs\v2-c0841dfc8cb19a94c322eef635371cf6_720w.jpg)
+![](../imgs\v2-c0841dfc8cb19a94c322eef635371cf6_720w.jpg)
 
 - **Subject：**当前用户，Subject 可以是一个人，但也可以是第三方服务、守护进程帐户、时钟守护任务或者其它–当前和软件交互的任何事件。
 - **SecurityManager：**管理所有Subject，SecurityManager 是 Shiro 架构的核心，配合内部安全组件共同组成安全伞。
-- **Realms：**用于进行权限信息的验证，我们自己实现。**Realm 本质上是一个特定的安全 DAO**：它封装与数据源连接的细节，得到Shiro 所需的相关的数据。在配置 Shiro 的时候，你必须指定至少一个Realm 来实现认证（authentication）和/或授权（authorization）。
+- **Realms：**用于进行权限信息的验证，我们自己实现。**Realm 本质上是一个特定的安全 DAO**：它封装与数据源连接的细节，得到Shiro 所需的相关的数据。在配置 Shiro 的时候，你必须指定至少一个Realm **来实现认证（authentication）和/或授权（authorization）**。
 
 我们需要实现Realms的Authentication 和 Authorization。其中 Authentication 是用来验证用户身份，Authorization 是授权访问控制，用于对用户进行的操作授权，证明该用户是否允许进行当前操作，如访问某个链接，某个资源文件等。
 
@@ -80,7 +80,7 @@
 
 ## 认证过程
 
-![](imgs\v2-2531156d2e6fb3ec0702f1d1ed795f43_720w.jpg)
+![](../imgs\v2-2531156d2e6fb3ec0702f1d1ed795f43_720w.jpg)
 
 
 
@@ -88,9 +88,7 @@
 
 **实现：**（建立一个maven项目）
 
-
-
-pom.xml
+**pom.xml**
 
 ```xml
 <dependencies>
@@ -231,7 +229,7 @@ public class AuthenticationTest {
         System.out.println("isAuthenticated:" + subject.isAuthenticated()); // 输出true
 
         // 判断subject是否具有admin和user两个角色权限,如没有则会报错
-                subject.checkRoles("admin","user");
+        subject.checkRoles("admin","user");
         
         // org.apache.shiro.authz.UnauthorizedException: Subject does not have role [xxx]
         // subject.checkRole("xxx"); // 报错
@@ -246,8 +244,6 @@ public class AuthenticationTest {
 
 
 ## 自定义Realm
-
-
 
 Shiro 框架内部默认提供了两种实现Realm，一种是查询`.ini`文件的`IniRealm`，另一种是查询数据库的`JdbcRealm`。
 
@@ -575,10 +571,11 @@ public class UserInfo {
     private String password;
     private String salt;
 
-    @JsonIgnoreProperties(value = {"userInfos"})
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "SysUserRole", joinColumns = @JoinColumn(name = "uid"), inverseJoinColumns = @JoinColumn(name = "roleId"))
+    @ManyToMany(targetEntity = SysRole.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @JoinTable(name = "sys_user_role", joinColumns = {@JoinColumn(name = "uid", referencedColumnName = "id")},
+            inverseJoinColumns = {@JoinColumn(name = "roleId", referencedColumnName = "id")})
     private List<SysRole> roles;
+
 }
 
 // 角色
@@ -593,16 +590,10 @@ public class SysRole {
     private String description; // 角色描述,用于UI显示
 
     // 角色 -- 权限关系：多对多
-    @JsonIgnoreProperties(value = {"roles"})
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "SysRolePermission", joinColumns = {@JoinColumn(name = "roleId")}, inverseJoinColumns = {@JoinColumn(name = "permissionId")})
+    @ManyToMany(targetEntity = SysPermission.class, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @JoinTable(name = "sys_role_permission", joinColumns = {@JoinColumn(name = "roleId", referencedColumnName = "id")},
+            inverseJoinColumns = {@JoinColumn(name = "permissionId", referencedColumnName = "id")})
     private List<SysPermission> permissions;
-
-    // 用户 -- 角色关系：多对多
-    @JsonIgnoreProperties(value = {"roles"})
-    @ManyToMany
-    @JoinTable(name = "SysUserRole", joinColumns = {@JoinColumn(name = "roleId")}, inverseJoinColumns = {@JoinColumn(name = "uid")})
-    private List<UserInfo> userInfos;// 一个角色对应多个用户
 
 }
 
@@ -617,10 +608,7 @@ public class SysPermission {
     private String name; // 权限名称,如 user:select
     private String description; // 权限描述,用于UI显示
     private String url; // 权限地址.
-    @JsonIgnoreProperties(value = {"permissions"})
-    @ManyToMany
-    @JoinTable(name = "SysRolePermission", joinColumns = {@JoinColumn(name = "permissionId")}, inverseJoinColumns = {@JoinColumn(name = "roleId")})
-    private List<SysRole> roles; // 一个权限可以被多个角色使用
+
 }
 ```
 
@@ -706,9 +694,13 @@ public class MyShiroRealm extends AuthorizingRealm {
 
 ```
 
+
+
 **ShiroConfig:**（定义一系列的Filter）
 
-Apache Shiro 的核心通过 Filter 来实现，就好像 SpringMvc 通过 DispachServlet 来主控制一样。 既然是使用 Filter 一般也就能猜到，是通过URL规则来进行过滤和权限校验，所以我们需要定义一系列关于URL的规则和访问权限。
+Apache Shiro 的核心通过 Filter 来实现，就好像 SpringMvc 通过 DispachServlet 来主控制一样。 
+
+既然是使用 Filter 一般也就能猜到，是通过URL规则来进行过滤和权限校验，所以我们需要定义一系列关于URL的规则和访问权限。
 
 Filter Chain定义说明：
 
