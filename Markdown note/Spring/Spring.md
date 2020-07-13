@@ -713,7 +713,38 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
+## 面试问题
 
+### Bean作用域
+
+**早期版本只有两个作用域：**
+
+- **singleton：**单例的方式存在。只会创建一个对象实例，而且是在Ioc容器初始化的时候就创建好了。多用于连接池啊之类的。
+- **prototype：**多例，也称为原型模式。每次从容器中调用Bean时，都会返回一个新的实例，prototype通常会翻译为原型。只有当要调用时才会创建实例。
+
+
+
+**2.x 版本中针对WebApplicationContext新增了3个作用域：**
+
+- **request：**每次HTTP请求都会创建一个新的Bean。
+- **session：**同一个HttpSession共享一个bean，不同的HttpSession使用不同的Bean。
+- **globalSession：**同一个全局Session共享一个Bean。
+
+
+
+单例模式和原型模式都是重要的设计模式。一般情况下，无状态或状态不可变得类适合使用单例模式。在传统开发中，由于DAO持有Connection这个非线程安全对象而没有使用单例模式；但在Spring环境下，所有DAO类可以采用单例模式，因为Spring利用AOP和Java API中的ThreadLocal对非线程安全的对象进行了特殊处理。
+
+
+
+### 自动装配方式
+
+如果当我们类中的依赖引用只有一个相同类型的Bean时，Spring会使用AutoWired帮我们自动装配，也不会存在什么冲突的问题，但是如果是多种相同类型的Bean存在，这时我们就需要Spring按照某种规则帮我们找到所需要的Bean进行装配。
+
+- **no：**不进行自动装配，手动设置Bean的依赖关系。
+- **byName：**根据Bean的名字进行自动装配。
+- **byType：**根据Bean的类型进行自动装配。
+- **constructor：**类似于byType，不过是应用于构造器的参数，如果正好有一个Bean与构造器的参数类型相同则可以自动装配，否则会导致错误。
+- **autodetect：**如果有默认的构造器，则通过constructor的方式进行自动装配，否则使用byType的方式进行自动装配。
 
 
 

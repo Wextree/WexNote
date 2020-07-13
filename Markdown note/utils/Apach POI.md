@@ -2,6 +2,31 @@
 
 > 基于Apache POI的Java读写excel的操作实现
 
+```xml
+<dependencies>
+        <!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>3.17</version>
+        </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>net.sourceforge.jexcelapi</groupId>-->
+<!--            <artifactId>jxl</artifactId>-->
+<!--            <version>2.6.12</version>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.12</version>
+        </dependency>
+    </dependencies>
+```
+
+
+
 ```java
 package utils;
 
