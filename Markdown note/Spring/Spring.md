@@ -92,13 +92,21 @@ Spring核心的配置文件`applicationContext.xml`或者叫`bean.xml`
 
 
 
-
-
 ## Ioc
 
 ![](..\..\Audition Points\imgs\640 (26).webp)
 
 ![](..\..\Audition Points\imgs\640 (27).webp)
+
+**IoC（Inversion of Control）控制反转，DI（Dependency Injection）依赖注入。**
+
+**控制反转**是吧传统上由程序代码直接操控的对象的调用权**交给容器**，通过容器来实现对象组件的装配合管理。所谓的“控制反转”就是对组件对象控制权的转移，从程序代码本身转移到了外部容器，由容器**来创建对象并管理对象之间的依赖关系**。
+
+**依赖注入**的基本原则是应用组件不应该负责查找资源或者其他依赖的协作对象。配置对象的工作应该由容器负责，查找资源的逻辑应该从应用组件的代码中抽取出来，交给容器来完成。DI是对IoC更为准确的描述，即组件之间的依赖关系由容器在运行期决定，形象的来说，即由容器动态的将某种依赖关系注入到组件之中。
+
+一个类A需要调用到接口B中的方法，那么就需要为类A和接口B建立关联或者依赖关系，最原始的方法就是在类A中创建一个接口B的实现类C的实例，但这种方法需要开发人员自行去维护二者之间的依赖关系，也就是说当依赖关系发生变动时，需要修改代码并重新构建整个系统。如果通过一个容器来管理这些对象和对象的依赖关系，则只需要在类A中定义好用于关联B的方法（构造器或setter方法），将类A和接口B的实现类C放入容器中，通过对容器的配置来实现二者之间的关联。
+
+依赖注入可以通过setter方法注入，构造器注入和接口注入三种方式来实现。
 
 
 
@@ -748,7 +756,31 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
+## BeanFactory & ApplicationContext
 
+### BeanFactory
+
+**BeanFactory**是Spring中比较原始，比较古老的Factory。所以它无法支持Spring插件，例如AOP、Web应用等功能。
+
+
+
+### ApplicationContext
+
+它是BeanFactory的子类，因为古老的BeanFactory无法满足不断更新的Spring的需求，于是ApplicationContext就基本上替代了BeanFactory的工作，以一种更面向框架的工作方式以及对上下文进行分层和实现继承，并在这个基础上对功能进行扩展：
+
+- **MessageSource**提供国际化的消息访问
+- 资源访问（如URL和文件）
+- 事件传递
+- Bean的自动装配
+- 各种不同应用层的Context实现
+
+
+
+### 区别
+
+- 对于singleton实例对象，ApplicationContext不管你是不是想先加载，都会先实例化它。好处是可以预先加载，但坏处是浪费内存。
+- BeanFactory实例化对象时不会马上实例化，而是等到你要调用bean的时候（getBean）才会被实例化。好在节约内存，坏在速度比较慢，多用于移动设备的开发。
+- 现在基本上都是用ApplicationContext来完成，如果没有特殊情况，BeanFactory能完成的它都能完成。
 
 
 
