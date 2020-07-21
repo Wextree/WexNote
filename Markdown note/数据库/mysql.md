@@ -112,9 +112,9 @@ select * from student order by cno desc,sno asc;
 
 ```
 
+
+
 ## 连接查询
-
-
 
 ### 内连接
 
@@ -154,8 +154,6 @@ start transaction;
 - C 一致性：事务要求同一事务中的sql语句必须保证同时成功或者同时失败。
 - I 隔离性：不同事务之间具有隔离性
 - D 持久性：事务一旦结束（commit,rollback），就不可以返回
-
-
 
 
 

@@ -222,7 +222,7 @@ struct sdshdr{
 }
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640.png)
+![](..\imgs\640.png)
 
 - **优势：**
 
@@ -274,7 +274,7 @@ typedef struct list{
 }list
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640 (1).webp)
+![](..\imgs\640 (1).webp)
 
 - **特性：**
   - **无环双向**链表。
@@ -325,7 +325,7 @@ typedef struct dictEntry {
 }dictEntry;
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640 (2).webp)
+![](..\imgs\640 (2).webp)
 
 ```c
 // Redis为了更好的操作，对哈希表往上再封装了一层(参考上面的Redis实现链表)，使用dict结构来表示：
@@ -372,7 +372,7 @@ typedef struct dictType{
 }dictType
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640.jpg)
+![](..\imgs\640.jpg)
 
 - 从代码实现和示例图上我们可以发现，**Redis中有两个哈希表**：
   - ht[0]：用于存放**真实**的 `key-vlaue` 数据
@@ -426,7 +426,9 @@ typeof struct zskiplist {
 } zskiplist;
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640 (1).jpg)
+![](..\imgs\640 (1).jpg)
+
+
 
 ### 整数集合
 
@@ -451,11 +453,15 @@ typeof struct intset {
 
 压缩列表结构图例如下：
 
-![压缩列表的组成部分](https://mmbiz.qpic.cn/mmbiz_png/2BGWl1qPxib3601DAl7JNGKSFZFgcxM67dPV9J3ANXSZ3OZiaodMUlQYbL6L06KzFP3ia8niaxia2Ljul9PX7ya3mpg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)压缩列表的组成部分
+![](..\imgs\ziplist.webp)
+
+压缩列表的组成部分
 
 下面我们看看节点的结构图：
 
-![img](https://mmbiz.qpic.cn/mmbiz_png/2BGWl1qPxib3601DAl7JNGKSFZFgcxM67Fd7lkj3IWjkicM0SibERgVm2KMpu1gNEpYaAvUtd6ibOm0SicHJdBnPib8Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![](..\imgs\ziplistnode.webp)
+
+
 
 > 压缩列表从表尾节点**倒序遍历**，首先指针通过zltail偏移量指向表尾节点，然后通过指向**节点记录的前一个节点的长度依次向前遍历访问整个压缩列表**。
 
@@ -463,7 +469,7 @@ typeof struct intset {
 
 ### 数据结构的对象
 
-![](E:\git\WexNote\Audition Points\imgs\640 (2).jpg)
+![](..\imgs\640 (2).jpg)
 
 #### 字符串对象
 
@@ -471,7 +477,7 @@ typeof struct intset {
 
 - int：整数值，这个整数值可以使用long类型来表示
 
-- - 如果是浮点数，那就用embstr或者raw编码。具体用哪个就看这个数的长度了
+- 如果是浮点数，那就用embstr或者raw编码。具体用哪个就看这个数的长度了
 
 - embstr：字符串值，这个字符串值的长度小于32字节
 
@@ -501,9 +507,9 @@ redis > RPUSH numbers 1 "three" 5
 (integer) 3 
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640 (3).webp)
+![](..\imgs\640 (3).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (3).jpg)
+![](..\imgs\640 (3).jpg)
 
 编码之间的**转换：**
 
@@ -518,11 +524,11 @@ redis > RPUSH numbers 1 "three" 5
 - ziplist：key和value的字符串长度都小于64字节并且键值对总数量小于512
 - hashtable：key和value的字符串长度大于64字节或者键值对总数量大于512
 
-![](E:\git\WexNote\Audition Points\imgs\640 (4).webp)
+![](..\imgs\640 (4).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (5).webp)
+![](..\imgs\640 (5).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (6).webp)
+![](..\imgs\640 (6).webp)
 
 编码之间的**转换：**
 
@@ -539,11 +545,11 @@ redis > RPUSH numbers 1 "three" 5
 
 intset编码的集合结构：
 
-![](E:\git\WexNote\Audition Points\imgs\640 (7).webp)
+![](..\imgs\640 (7).webp)
 
 hashtable编码的集合结构：
 
-![](E:\git\WexNote\Audition Points\imgs\640 (4).jpg)
+![](..\imgs\640 (4).jpg)
 
 编码之间的**转换：**
 
@@ -560,15 +566,15 @@ hashtable编码的集合结构：
 
 ziplist编码的有序集合结构：
 
-![](E:\git\WexNote\Audition Points\imgs\640 (4).webp)
+![](..\imgs\640 (4).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (10).webp)
+![](..\imgs\640 (10).webp)
 
 
 
 skiplist编码的有序集合结构：
 
-![](E:\git\WexNote\Audition Points\imgs\640 (9).webp)
+![](..\imgs\640 (9).webp)
 
 
 
@@ -618,15 +624,13 @@ typedef struct redisDb {
 } redisDb;
 ```
 
-![](E:\git\WexNote\Audition Points\imgs\640 (11).webp)
+![](..\imgs\640 (11).webp)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (12).webp)
+![](..\imgs\640 (12).webp)
 
 ### 过期时间
 
-Redis是**基于内存**，内存是比较昂贵的，容量肯定比不上硬盘的。就
-
-因为我们的内存是**有限**的。所以我们**会干掉不常用的数据，保留常用的数据**。这就需要我们设置一下键的过期(生存)时间了。
+Redis是**基于内存**，内存是比较昂贵的，容量肯定比不上硬盘的。就因为我们的内存是**有限**的。所以我们**会干掉不常用的数据，保留常用的数据**。这就需要我们设置一下键的过期(生存)时间了。
 
 - 设置键的**生存**时间可以通过`EXPIRE`或者`PEXPIRE`命令。
 - 设置键的**过期**时间可以通过`EXPIREAT`或者`PEXPIREAT`命令。
@@ -644,16 +648,11 @@ Redis是**基于内存**，内存是比较昂贵的，容量肯定比不上硬�
 #### 策略
 
 - **定时删除**(对内存友好，对CPU不友好)
-
-- - **到时间点**上就把所有过期的键删除了。
-
+- 到时间点**上就把所有过期的键删除了**。
 - **惰性删除**(对CPU极度友好，对内存极度不友好)
-
-- - 每次从键空间取键的时候，判断一下该键是否过期了，如果过期了就删除。
-
+- 每次从键空间取键的时候，判断一下该键是否过期了，如果过期了就删除。
 - **定期删除**(折中)
-
-- - **每隔**一段时间去删除过期键，**限制**删除的执行时长和频率。
+- **每隔**一段时间去删除过期键，**限制**删除的执行时长和频率。
 
 
 
@@ -664,17 +663,19 @@ Redis服务器是一个**事件驱动程序**，主要处理以下两类事件�
 - 文件事件：文件事件其实就是**对Socket操作的抽象**，Redis服务器与Redis客户端的通信会产生文件事件，服务器通过监听并处理这些事件来完成一系列的网络操作
 - 时间事件：时间事件其实就是对**定时操作的抽象**，前面我们已经讲了RDB、AOF、定时删除键这些操作都可以由服务端去定时或者周期去完成，底层就是通过触发时间事件来实现的！
 
+
+
 ### 文件事件
 
 Redis开发了自己的网络事件处理器，这个处理器被称为**文件事件处理器**。
 
 有**四部分**：
 
-![](E:\git\WexNote\Audition Points\imgs\640 (18).webp)
+![](..\imgs\640 (18).webp)
 
 文件事件处理器使用I/O多路复用程序来**同时监听多个Socket**。Redis中的I/O多路复用程序会将所有**产生事件的Socket放到一个队列**里边，然后通过这个队列以有序、同步、每次一个Socket的方式向文件事件分派器传送套接字。也就是说：当上一个Socket**处理完毕**后，I/O多路复用程序才会向文件事件分派器传送**下一个**Socket。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (8).jpg)
+![](..\imgs\640 (8).jpg)
 
 ### 时间事件
 
@@ -692,10 +693,14 @@ Redis服务器将时间事件放在一个**链表**中，当时间事件执行�
 - **周期性事件**(Redis一般只执行serverCron时间事件，serverCron时间事件是周期性的)
 - 定时事件
 
+
+
 ### 时间事件和文件事件
 
 - 文件事件和时间事件之间是**合作**关系，服务器会轮流**处理**这两种事件，并且处理事件的过程中不会发生抢占。
 - 时间事件的实际处理事件通常会比设定的到达时间**晚**一些
+
+
 
 ### 为什么单线程Redis那么快
 
@@ -707,12 +712,14 @@ Redis服务器将时间事件放在一个**链表**中，当时间事件执行�
 
 ##客户端和服务器
 
-服务器使用clints**链表**连接多个客户端状态，新添加的客户端状态会被放到**链表的末尾**
+服务器使用clients**链表**连接多个客户端状态，新添加的客户端状态会被放到**链表的末尾**
 
-![](E:\git\WexNote\Audition Points\imgs\640 (19).webp)
+![](..\imgs\640 (19).webp)
 
 - 一个服务器可以与多个客户端建立网络连接，每个**客户端可以向服务器发送命令请求**，而服务器则接收并处理客户端发送的命令请求，并向客户端返回命令回复。
 - Redis服务器使用**单线程单进程**的方式处理命令请求。在数据库中保存**客户端执行命令所产生的数据**，并通过**资源管理来维持**服务器自身的运转。
+
+
 
 ### 客户端
 
@@ -820,7 +827,7 @@ def main():
 
 - - 主服务器的数据库状态**被修改**，导致主从服务器的数据库状态**不一致**，让主从服务器的数据库状态**重新回到一致状态**。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (20).webp)
+![](..\imgs\640 (20).webp)
 
 从服务器对主服务器的**同步又可以分为两种情况**：
 
@@ -859,7 +866,7 @@ def main():
 - 主服务器每次传播N个字节，就将自己的复制偏移量加上N
 - 从服务器每次收到主服务器的N个字节，就将自己的复制偏移量加上N
 
-![](E:\git\WexNote\Audition Points\imgs\640 (21).webp)
+![](..\imgs\640 (21).webp)
 
 那断线重连以后，从服务器向主服务器发送PSYNC命令，报告现在的偏移量是36，那么主服务器该对从服务器执行完整重同步还是部分重同步呢？？这就交由**复制积压缓冲区**来决定。
 
@@ -867,7 +874,7 @@ def main():
 
 服务器运行的ID(**run ID**)实际上就是用来比对ID是否相同。如果不相同，则说明从服务器断线之前复制的主服务器和当前连接的主服务器是两台服务器，这就会进行完整重同步。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (22).webp)
+![](..\imgs\640 (22).webp)
 
 #### 命令传播
 
@@ -901,21 +908,21 @@ def main():
 - 然后，在启动的时候会将普通Redis服务器的代码替换成**Sentinel专用代码**。(所以Sentinel虽然作为Redis服务器，但是它**不能执行S**ET、DBSIZE等等命令，因为命令表的代码被替换了)
 - 初始化Sentinel的状态，并根据给定的配置文件**初始化**Sentinel监视的**主服务器列表**。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (23).webp)
+![](..\imgs\640 (23).webp)
 
 - 最后，Sentinel会创建两个**连向主服务器的网络连接**：
   - 命令连接(发送和接收命令)
   - 订阅连接(订阅主服务器的`sentinel:hello`频道)
 
-![](E:\git\WexNote\Audition Points\imgs\640 (9).jpg)
+![](..\imgs\640 (9).jpg)
 
 - Sentinel通过**主服务器**发送**INFO命令**来获得主服务器属下**所有从服务器**的地址信息，并为这些从服务器创建相应的实例结构。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (24).webp)
+![](..\imgs\640 (24).webp)
 
 - 当发现有**新的从服务器出现时**，除了创建对应的从服务器实例结构，Sentinel还会创建命令连接和订阅连接。
 
-![](E:\git\WexNote\Audition Points\imgs\640 (25).webp)
+![](..\imgs\640 (25).webp)
 
 在Sentinel运行的过程中，通过命令连接会以每两秒一次的频率向**监视的主从服务器**的`_sentinel_:hello频道`发送命令(主要发送Sentinel本身的信息，监听主从服务器的信息)，并通过订阅连接接收`_sentinel_:hello频道`的信息。
 
