@@ -48,7 +48,7 @@
 
 #### pom文件
 
-```
+```xml
 <parent>
     <groupId>org.springframework.boot</groupId>
     <!-- 使用最新版springboot -->
@@ -100,7 +100,7 @@
 
 #### application.yml
 
-```
+```yAML
 eureka:
   client:
     service-url:
@@ -125,7 +125,7 @@ spring:
 
 #### 启动文件
 
-```
+```java
 // 由于我们使用组件一般都会打开注册中心，所以建议打包成jar包，然后用命令行打开
 // 我是打包后使用批处理放在桌面，每次都可以直接打开
 @SpringBootApplication
@@ -146,7 +146,7 @@ public class EurakalearnApplication {
 
 在服务器项目中把server-port配置注释掉，因为我们打算用tomcat来配置端口，实现代码重用：
 
-```
+```yaml
 eureka:
   client:
     service-url:
@@ -175,7 +175,7 @@ spring:
 
 启动时，服务器要注册的地址要是对方的服务器地址。如果是三个，那么就多加一个，文件就会被修改为：
 
-```
+```yaml
 eureka:
   client:
     service-url:
@@ -192,7 +192,7 @@ spring:
 
 #### 客户端
 
-```
+```xml
 <!-- client下需要导入web模块，不然会自动停止 -->
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -203,6 +203,8 @@ spring:
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 </dependency>
+
+
 eureka:
   client:
     service-url:
@@ -219,7 +221,7 @@ spring:
 
 #### 获取其他服务信息的方法
 
-```
+```java
 @RestController
 @Slf4j
 public class DemoController {
@@ -311,7 +313,7 @@ public class DemoController {
 
 由于上述第三种方法和第二种方法原理上是一致的，但是注解方式难以去理解，所以我们采用第二方式为例，以源码来追踪其实现的负载均衡机制。
 
-```
+```java
 // 我们进入重点的choose()方法
 ServiceInstance serviceInstance = loadBalancerClient.choose("CLIENT");
 
@@ -427,7 +429,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
 **引入依赖：**
 
-```
+```xml
 <!--旧版本，具体多少之前不知道，都试试吧-->
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -443,7 +445,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
 **启动类加上标识注释：**
 
-```
+```java
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
@@ -458,11 +460,11 @@ public class EurekaClientApplication {
 
 **设置FeignClient接口：**
 
-```
+```java
 @FeignClient(name = "client")
 public interface MsgClient {
     // 对应的服务的路径
-    @GetMapping("/msg")
+    @GetMapping("/msg")/
     public String getMessage();
 }
 
@@ -470,7 +472,7 @@ public interface MsgClient {
 
 **controller类直接调用连接：**
 
-```
+```java
 @Autowired
 private MsgClient msgClient;
 
@@ -491,7 +493,7 @@ Spring Cloud Config项目是一个解决分布式系统的**配置管理方案**
 
 ### 导入相应依赖
 
-```
+```xml
 <!-- pom.xml -->
 <properties>
     <java.version>1.8</java.version>
@@ -523,6 +525,10 @@ Spring Cloud Config项目是一个解决分布式系统的**配置管理方案**
         </dependency>
     </dependencies>
 </dependencyManagement>
+
+```
+
+```yaml
 # application.yml
 spring:
   application:
@@ -542,6 +548,9 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+```
+
+```java
 // ConfigDemoApplication.class
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -554,6 +563,10 @@ public class ConfigDemoApplication {
     }
 }
 ```
+
+
+
+
 
 ### 打开服务器获取配置文件
 
@@ -586,7 +599,7 @@ public class ConfigDemoApplication {
 
 ### 客户端配置
 
-```
+```xml
 <!-- pom.xml -->
 <properties>
     <java.version>1.8</java.version>
@@ -635,6 +648,10 @@ public class ConfigDemoApplication {
         </dependency>
     </dependencies>
 </dependencyManagement>
+
+```
+
+```yaml
 # bootstrap.yml
 # 这里相对于之前有比较大的改变，主要有两点
 # 第一文件名改为bootstrap而不是application（区别见后详细介绍）
@@ -653,6 +670,9 @@ spring:
 
 server:
   port: 8081
+```
+
+```java
 // EurekaClientApplication.java
 // 不需要多增加标识
 @SpringBootApplication
@@ -665,8 +685,13 @@ public class EurekaClientApplication {
     }
 
 }
-
 ```
+
+
+
+
+
+
 
 运行之后就可以正常启动啦
 
@@ -699,7 +724,7 @@ public class EurekaClientApplication {
 
 #### 相关配置
 
-```
+```xml
 <!--结合rabbitMQ-->
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -723,7 +748,7 @@ public class EurekaClientApplication {
 
 我们写一个类和controller来接收配置中的信息，方便我们感受更改网上配置，刷新直接可以返回新的信息。
 
-```
+```yaml
 # 网上仓库的配置文件，记得把上面码云的重新拷贝到github，因为码云暂时没有办法很好适配spring
 eureka:
   client:
@@ -740,6 +765,10 @@ env: dev
 girl:
   name: wextree
   age: 30
+
+```
+
+```java
 // 写在客户端
 @Data
 @Component
@@ -764,8 +793,9 @@ public class GirlController {
         return "name: " + girlConfig.getName() + "  age: " + girlConfig.getAge();
     }
 }
-
 ```
+
+
 
 
 
@@ -898,7 +928,7 @@ zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或
 
 **新建一个项目，导入依赖：**
 
-```
+```xml
 <!-- pom.xml -->
 <properties>
         <java.version>1.8</java.version>
@@ -933,7 +963,7 @@ zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或
 
 **结合config组件开启配置，静态配置写在里面，动态配置写在外面：**
 
-```
+```yaml
 # bootstrap.yml
 spring:
   application:
@@ -977,7 +1007,7 @@ env: dev
 
 **主配置类：**
 
-```
+```java
 // 主配置类
 @SpringBootApplication
 // 新增类
@@ -1011,7 +1041,7 @@ public class ApiGatewayApplication {
 
 由于这个zuul组件路由对于cookie等一些敏感信息会进行过滤，这个可以从zuul路由器的配置类看出。
 
-```
+```java
 @ConfigurationProperties("zuul")
 public class ZuulProperties {
     private Set<String> sensitiveHeaders = new LinkedHashSet<>(
@@ -1025,7 +1055,7 @@ public class ZuulProperties {
 
 **所以我们可以在配置那里设置敏感头部位空：**
 
-```
+```yaml
 zuul:
   routes:
 #    client: /myClient/**
@@ -1045,7 +1075,7 @@ zuul:
 
 在网关服务器**增加一个filte**r实现功能：
 
-```
+```java
 package com.wex.apigateway.filter;
 
 import com.netflix.zuul.ZuulFilter;
@@ -1114,7 +1144,7 @@ public class TokenFilter extends ZuulFilter {
 
 还是需要建立一个filter
 
-```
+```java
 @Component
 public class AddResponseHeaderFilter extends ZuulFilter {
     @Override
@@ -1152,7 +1182,7 @@ public class AddResponseHeaderFilter extends ZuulFilter {
 
 我们利用其他组件已经写好的算法：
 
-```
+```java
 package com.wex.apigateway.filter;
 
 import com.google.common.util.concurrent.RateLimiter;
@@ -1205,7 +1235,7 @@ public class RateLimiterException extends RuntimeException{
 
 当我们对某个接口或者方法和类进行跨域声明时，我们可以加上注解
 
-```
+```JAVA
 @CrossOrigin(allowCredentials = "true")
 ```
 
@@ -1215,7 +1245,7 @@ public class RateLimiterException extends RuntimeException{
 
 我们在zuul里面新建一个config/CorsConfig跨域配置：
 
-```
+```java
 package com.wex.apigateway.config;
 
 import org.springframework.context.annotation.Bean;
@@ -1277,7 +1307,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
 - **简单实现一个客户端，实现对应的接口测试调用：**
 
-  ```
+  ```java
   @RestController
   @RequestMapping("/user")
   public class UserController {
@@ -1293,7 +1323,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
 - **另一个客户端访问该接口：**
 
-  ```
+  ```xml
   <!-- 新增依赖 -->
   <dependency>
       <groupId>org.springframework.cloud</groupId>
@@ -1301,7 +1331,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
   </dependency>
   ```
 
-  ```
+  ```java
   // 主配置类
   //@SpringBootApplication
   //@EnableDiscoveryClient
@@ -1319,7 +1349,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
   
 
-  ```
+  ```java
   @RestController
   @RequestMapping("/hystrix")
   @Slf4j
@@ -1373,7 +1403,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
 - **熔断器相关配置：**
 
-  ```
+  ```java
   @HystrixCommand(commandProperties = {
               // 熔断开关
               @HystrixProperty(name = "circuitBreaker.enabled", value = "true"),
@@ -1390,7 +1420,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
 - **也可以把配置放在yml配置文件中（以超时时间为例）：**
 
-```
+```yaml
 # 将hystrix的配置移动到这里
 hystrix:
   command:
@@ -1413,7 +1443,7 @@ hystrix:
 
 开启**hystrix**配置：
 
-```
+```yml
 # bootstrap.yml
 # feign集成了hystrix，但是需要手动打开
 feign:
@@ -1423,7 +1453,7 @@ feign:
 
 定义相关的feign对应的hystrix的工厂类对象（实现了对应的接口）：
 
-```
+```java
 @Component
 public class ErrorHelloImpl implements FallbackFactory<HelloClient> {
 
@@ -1440,7 +1470,7 @@ public class ErrorHelloImpl implements FallbackFactory<HelloClient> {
 
 写一个测试的对应**feign接口**：
 
-```
+```java
 @FeignClient(name = "demo", fallbackFactory = ErrorHelloImpl.class)
 public interface HelloClient {
     @GetMapping("/user/msg")
@@ -1450,7 +1480,7 @@ public interface HelloClient {
 
 写一个**controller**进行访问，访问的对象是上面之前定义的**demo服务**里面的**/user/msg**功能：
 
-```
+```java
 @RestController
 public class UserController {
 
@@ -1477,7 +1507,7 @@ public class UserController {
 
 导入对应的**依赖**：
 
-```
+```xml
 <dependency>
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
@@ -1496,7 +1526,7 @@ public class UserController {
 
 **配置**：
 
-```
+```yaml
 # feign集成了hystrix，但是需要手动打开
 feign:
   hystrix:
@@ -1512,7 +1542,7 @@ management:
 
 **启动类**：
 
-```
+```java
 @SpringCloudApplication  // 已经包含了@EnableCircuitBreaker
 @EnableFeignClients
 @EnableHystrixDashboard
@@ -1553,7 +1583,7 @@ public class EurekaClientApplication {
 
 #### Unable to connect to Command Metric Stream.问题及其解决
 
-```
+```java
 // HystrixAutoConfiguration类
 
 @Configuration(proxyBeanMethods = false)
@@ -1637,7 +1667,7 @@ Spring Cloud Sleuth为服务之间调用提供**链路追踪**。通过Sleuth可
 
 **导入依赖：**
 
-```
+```xml
 <dependency>
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-sleuth</artifactId>

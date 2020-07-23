@@ -464,6 +464,19 @@ private void callRunners(ApplicationContext context, ApplicationArguments args) 
 
 
 
+**流程概括：**
+
+1. 首先自动配置流程的启动分为两个部分，一个是初始化一个SpringApplication对象，然后另一个是运行它。
+2. 初始化对象主要是判断是否是Web项目，还有获取类路径**META-INF/spring.factories**的初始化器还有监听器，主类等。
+3. 之后是run()正式启动工作。
+4. 先获取类路径上的监听器，然后调用starting()方法进行统一的运行（循环调用其回调方法）。
+5. 之后封装好命令行参数，调用prepareEnvironment()配置对应的环境。其实就是调用所有监听器中的回调方法environmentPrepared()，如果是web环境也要另外配置。
+6. 之后是创建对应的IoC容器，判断是什么类型的容器，然后利用BeanUtils通过反射进行创建。
+7. 然后为容器准备上下文配置。调用刚才初始化时候配置的初始化器的initialize方法，和监听器的contextPrepared方法，之后添加一些小的启动组件和获取对应的主类，然后调用监听器的contextLoaded方法完成创建。
+8. 创建完IoC容器之后会开始创建我们的自定义类和配置类等等。
+9. 从Ioc容器中获取所有的ApplicationRunner，CommandLineRunner（有优先级关系），调用它们的回调方法
+10. 最后调用我们的监听器的回调方法started完成。
+
 
 
 
