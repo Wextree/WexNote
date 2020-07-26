@@ -65,7 +65,7 @@ Documented 注解表明这个注解应该被 `javadoc`工具记录. 默认情况
 
 ## 模块
 
-![](..\..\Audition Points\imgs\640 (10).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/640 (10).jpg)
 
 - **Spring Core**  spring的核心功能： IOC容器, 解决对象创建及依赖关系
 
@@ -105,9 +105,9 @@ Spring核心的配置文件`applicationContext.xml`或者叫`bean.xml`
 
 ## Ioc
 
-![](..\..\Audition Points\imgs\640 (26).webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/640 (26).webp)
 
-![](..\..\Audition Points\imgs\640 (27).webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/640 (27).webp)
 
 **IoC（Inversion of Control）控制反转，DI（Dependency Injection）依赖注入。**
 

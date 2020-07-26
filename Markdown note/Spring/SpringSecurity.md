@@ -848,7 +848,7 @@ public class DemoUserDetailService implements UserDetailsService {
         UserInfo userInfo = userInfoDao.findByUsername(username);
         System.out.println(userInfo.getUsername() + "login");
         User user = new User(userInfo.getUsername(), "{noop}"+userInfo.getPassword(), true,true,true,true,getAuthority(userInfo.getRoles()));
-        return null;
+        return user;
     }
 
     private List<SimpleGrantedAuthority> getAuthority(List<Role> roles) {
