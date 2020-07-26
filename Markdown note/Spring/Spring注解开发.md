@@ -22,7 +22,7 @@ public class MainConfiguration {
 
 **利用分层方法多建几个类，放进去IoC容器中：**
 
-![](E:/git/WexNote/Markdown note/imgs/Snipaste_2020-07-17_20-58-16.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/Snipaste_2020-07-17_20-58-16.png)
 
 
 

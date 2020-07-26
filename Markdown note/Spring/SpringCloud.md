@@ -167,11 +167,11 @@ spring:
 
 ```
 
-![img](../imgs/1590289619(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/159028.jpg)
 
 进去复制两个启动器，通过修改配置以启动不同的端口：
 
-![img](../imgs/1590289662(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590289662(1).jpg)
 
 启动时，服务器要注册的地址要是对方的服务器地址。如果是三个，那么就多加一个，文件就会被修改为：
 
@@ -572,7 +572,7 @@ public class ConfigDemoApplication {
 
 在码云上新建一个仓库
 
-![img](../imgs/fe27447f2391e3a100cfcb1d3df6fa5.png?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/fe27447f2391e3a100cfcb1d3df6fa5.png)
 
 打开浏览器输入对应URI，获取对应的配置文件
 
@@ -583,17 +583,17 @@ public class ConfigDemoApplication {
 - profile：激活环境（必须要，如果没有设置那么也要随便加上一个）
 - xxxx：对应后缀名，代表格式
 
-![img](../imgs/1590580635(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590580635(1).jpg)
 
 **进行访问**
 
-![img](../imgs/1590580725(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590580725(1).jpg)
 
 换个格式：（会自动帮我们转换的）
 
-![img](../imgs/1590580771(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590580771(1).jpg)
 
-![img](../imgs/1590580850(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590580850(1).jpg)
 
 
 
@@ -695,7 +695,7 @@ public class EurekaClientApplication {
 
 运行之后就可以正常启动啦
 
-![img](../imgs/1590581448(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590581448(1).jpg)
 
 
 
@@ -740,7 +740,7 @@ public class EurekaClientApplication {
 
 打开rabbitMQ（具体下载和安装使用在官网都有说明），和server服务器，可以看到已有队列：
 
-![img](../imgs/1590673738(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590673738(1).jpg)
 
 
 
@@ -817,13 +817,13 @@ public class GirlController {
 
 打开对应的仓库，进入设置：
 
-![img](../imgs/6929927dd246a1dede9d622874f4ed7.png?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/6929927dd246a1dede9d622874f4ed7.png)
 
 这时候我们就可以打开服务器和客户端进行访问啦
 
-![1590674566857](..\imgs\1590674566857.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590674566857.png)
 
-![1590674580418](..\imgs\1590674580418.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590674580418.png)
 
 但是，我们更改仓库中的配置文件，刷新客户端程序，根本没有任何改变。
 
@@ -864,7 +864,7 @@ public class GirlController {
 
 官方文档：
 
-![img](../imgs/20190603110245704.png?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20190603110245704.png)
 
 对应官方文档，以及我们的配置文件，我们可以依据serviceID的匹配规则来设置对应的参数去匹配webhooks。
 
@@ -900,7 +900,9 @@ Zuul是**Netflix**开源的微服务网关，可以和Eureka、Ribbon、Hystrix�
 
 ### 工作原理
 
-zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或者AOP。zuul把请求路由到用户处理逻辑的过程中，这些filter参与一些过滤处理，比如Authentication，Load Shedding等 ![img](../imgs/17866147-0cd4b2b96f649f4f.webp?lastModify=1592991606)
+zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或者AOP。zuul把请求路由到用户处理逻辑的过程中，这些filter参与一些过滤处理，比如Authentication，Load Shedding等
+
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/17866147-0cd4b2b96f649f4f.webp)
 
 - **功能：**
   - **身份验证和安全性 - 确定每个资源的身份验证要求并拒绝不满足这些要求的请求**
@@ -911,7 +913,7 @@ zuul的核心是一系列的filters, 其作用类比Servlet框架的Filter，或
   - **静态响应处理 - 直接在边缘构建一些响应，而不是将它们转发到内部集群**
 - **生命周期：**
 
-![img](../imgs/17866147-7cebc241af721a00.webp?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/17866147-7cebc241af721a00.webp)
 
 
 
@@ -1031,9 +1033,9 @@ public class ApiGatewayApplication {
 
 可以通过zuul服务器访问客户端（和直接访问客户端一致）：
 
-![img](../imgs/1590754408(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590754408(1).jpg)
 
-![img](../imgs/1590754462(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590754462(1).jpg)
 
 
 
@@ -1132,11 +1134,11 @@ public class TokenFilter extends ZuulFilter {
 
 直接打开访问：
 
-![img](../imgs/1590757485577.png?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590757485577.png)
 
 带着token：
 
-![img](../imgs/1590757528(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590757528(1).jpg)
 
 
 
@@ -1172,7 +1174,7 @@ public class AddResponseHeaderFilter extends ZuulFilter {
 }
 ```
 
-![img](../imgs/1590758227(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590758227(1).jpg)
 
 
 
@@ -1385,7 +1387,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
   
 
-![img](../imgs/1590979089(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1590979089(1).jpg)
 
 
 
@@ -1395,7 +1397,7 @@ Spring Cloud Hystrix 是Spring Cloud Netflix 子项目的核心组件之一，�
 
 熔断器开关相互转换的逻辑如下图：
 
-![img](../imgs/hystrix-2.png?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/hystrix-2.png)
 
 
 
@@ -1499,7 +1501,7 @@ public class UserController {
 
 查看服务，如果关闭对应服务会自动调用fallback中我们设置的对应方法：
 
-![img](../imgs/1591241545(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591241545(1).jpg)
 
 
 
@@ -1569,7 +1571,7 @@ public class EurekaClientApplication {
 
 访问`http://localhost:8081/hystrix`可以看到界面：
 
-![img](../imgs/1591261949(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591261949(1).jpg)
 
 
 
@@ -1577,7 +1579,7 @@ public class EurekaClientApplication {
 
 访问 `http://localhost:8081/hystrix.stream`可以看到：
 
-![img](../imgs/1591261876(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591261876(1).jpg)
 
 
 
@@ -1647,7 +1649,7 @@ public ServletRegistrationBean getServlet() {
 
 根据页面提示，我们应该输入：
 
-![img](../imgs/1591262325(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591262325(1).jpg)
 
 但是其实不应该用**https！！！！！**
 
@@ -1678,7 +1680,7 @@ Spring Cloud Sleuth为服务之间调用提供**链路追踪**。通过Sleuth可
 
 直接开启调用服务就会有日志打印了：
 
-![img](../imgs/1591274403(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591274403(1).jpg)
 
 ```
 # 服务名  链路的唯一标识（traceId）  链路的基本单元（spanId）  不收集服务和展示 
@@ -1709,4 +1711,4 @@ PORTS                                   NAMES
 
 > 由于我使用的是toolbox，实际上是建立在一个虚拟机上，所以我们要先获取我们的**虚拟机IP**，然后通过IP访问，不能直接通过localhost进行访问，因为根本不是在这个本地机子上运行的服务器。
 
-![img](../imgs/1591278499(1).jpg?lastModify=1592991606)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591278499(1).jpg)

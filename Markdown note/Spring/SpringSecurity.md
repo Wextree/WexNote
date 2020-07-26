@@ -28,7 +28,7 @@ Spring Security提供了一组可以在Spring应用上下文中配置的Bean，�
 
 **打开应用：**
 
-![](../imgs/1592898896(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1592898896(1).png)
 
 
 
@@ -198,7 +198,7 @@ java.lang.IllegalArgumentException: There is no PasswordEncoder mapped for the i
 
 **官网对于此问题的文档解释：**
 
-![](../imgs/20180818173059689.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20180818173059689.png)
 
 关于 Spring Security 5.0.X 的说明：
 在Spring Security 5.0之前，PasswordEncoder 的默认值为 NoOpPasswordEncoder 既表示为纯文本密码，在实际的开发过程中 PasswordEncoder 大多数都会设值为 BCryptPasswordEncoder ，但是这样会导致几个问题：
@@ -480,11 +480,11 @@ public class DemoController {
 
 使用admin用户登陆：
 
-![](../imgs/1592904551(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1592904551(1).png)
 
 使用root登陆：
 
-![](../imgs/1592904609(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1592904609(1).png)
 
 
 
@@ -611,7 +611,7 @@ public class DemoController {
 
 **登陆admin之后可以获得姓名展示：**
 
-![](../imgs/1592917292(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1592917292(1).png)
 
 
 

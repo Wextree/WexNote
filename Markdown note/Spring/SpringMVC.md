@@ -2,7 +2,7 @@
 
 ## 工作流程
 
-![工作流程](../imgs/5220087-3c0f59d3c39a12dd.webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/5220087-3c0f59d3c39a12dd.webp)
 
 1. 用户发送请求至**前端控制器DispatcherServlet**
 2. DispatcherServlet收到请求调用**处理器映射器HandlerMapping**。

@@ -31,7 +31,7 @@ Spring Data JPA是Spring Data家族的一部分，可以轻松实现基于JPA的
 
 总的来说JPA是ORM规范，Hibernate、TopLink等是**JPA规范的具体实现**，这样的好处是开发者可以面向JPA规范进行持久层的开发，而底层的实现则是可以切换的。**Spring Data Jpa则是在JPA之上添加另一层抽象（Repository层的实现）**，极大地简化持久层开发及ORM框架切换的成本。
 
-![](../imgs/10458268-de1860c2f3941031.webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/10458268-de1860c2f3941031.webp)
 
 
 
