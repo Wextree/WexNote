@@ -8,7 +8,7 @@
 
 查看官网的配置样例：[官网配置](https://docs.spring.io/spring-boot/docs/2.1.3.RELEASE/reference/htmlsingle/#boot-features-external-config-yaml)
 
-![](..\imgs\1588751089.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1588751089.png)
 
 
 
@@ -16,25 +16,25 @@
 
 - **通过以下示例**
 
-![](..\imgs\Snipaste_2020-05-06_15-47-46.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/Snipaste_2020-05-06_15-47-46.png)
 
 
 
 - **重点关注SpringBootApplication注解**
 
-![](..\imgs\Snipaste_2020-05-06_15-50-54.png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/Snipaste_2020-05-06_15-50-54.png)
 
 - **Target**  、**Retention **、**Documented** 和 **Inherited** 注解，是**`java.lang.annotation`**包下的原生注解。（具体的内容见上面解释）
 
 - **@SpringBootConfiguration**注解：
 
-  ![](..\imgs\Snipaste_2020-05-06_16-16-58.png)
+  ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/Snipaste_2020-05-06_16-16-58.png)
 
   - 除了前面几个原生的注解之外，其实最重要的就只有一个**@Configuration注解**，而这个注解在Spring中，是标注一个类，被标注的**类充当配置类**并且会被放入容器中。
 
 - **@EnableAutoConfiguration**注解（核心）：
 
-  ![](..\imgs\Snipaste_2020-05-06_16-25-48.png)
+  ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/Snipaste_2020-05-06_16-25-48.png)
 
   - **@AutoConfigurationPackage**注解
   - **AutoConfigurationImportSelector**（核心）：通过这个类来导入组件，以下是它的**主要方法**：
@@ -198,7 +198,7 @@ org.springframework.boot.autoconfigure.dao.PersistenceExceptionTranslationAutoCo
 
 **打上断点：**
 
-![](..\imgs\1591709222(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591709222(1).png)
 
 ```java
 // step into
@@ -460,7 +460,7 @@ private void callRunners(ApplicationContext context, ApplicationArguments args) 
 
 **经过listener starting之后：(有十个监听器启动)**
 
-![](..\imgs\1591712167(1).png)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591712167(1).png)
 
 
 
@@ -774,7 +774,7 @@ public class WebMvcAutoConfiguration {
 
 ## SpringBoot创造Restful风格接口
 
-![](..\imgs\4807654-e2d12ab79ceed5c2.webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/4807654-e2d12ab79ceed5c2.webp)
 
 ### 特点
 
@@ -789,7 +789,7 @@ public class WebMvcAutoConfiguration {
 
 下面我们尝试使用Spring MVC来实现一组对User对象操作的RESTful API，配合注释详细说明在Spring MVC中如何映射HTTP请求、如何传参、如何编写单元测试。
 
-![](..\imgs\12115116-079c163faa365326.webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/12115116-079c163faa365326.webp)
 
 
 

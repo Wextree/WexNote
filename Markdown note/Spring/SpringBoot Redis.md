@@ -602,8 +602,6 @@ cloudtOrgRoleSet = userRoleSetRedisTemplate.opsForSet().members(KEY);
 userRoleSetRedisTemplate.opsForSet().remove( KEY, subDeleteOrgRoleUserArray[i]);
 ```
 
-。
-
 
 
 
