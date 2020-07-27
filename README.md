@@ -3,7 +3,7 @@
 >
 > 由于网络上传之后图片路径改变无法直接观看，可以下载下来修改路径观看！
 
-## Markdown note
+## LearningNotes
 
 >学习一系列知识做的笔记
 
@@ -57,7 +57,7 @@
 
 
 
-## Audition Points
+## AuditionPoints
 
 >实习期间根据面经整理的知识点
 
