@@ -90,9 +90,9 @@ public class Client {
 
 **使用：**
 
-![](E:\git\WexNote\Audition Points\imgs\1591879985(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591879985(1).jpg)
 
-![](E:\git\WexNote\Audition Points\imgs\1591879964(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591879964(1).jpg)
 
 
 
@@ -102,7 +102,7 @@ public class Client {
 
 所谓BIO，就是Block IO，**阻塞式的IO**。这个阻塞主要发生在：ServerSocket接收请求时**（accept()方法）**、InputStream、OutputStream（输入输出流的读和写）都是阻塞的。这个可以在下面代码的调试中发现，比如在客户端接收服务器消息的输入流处打上断点，除非服务器发来消息，不然断点是一直停在这个地方的。也就是说这个线程在这时间是被阻塞的。
 
-![](E:\git\WexNote\Audition Points\imgs\1383122-20200411190359629-713089288.png)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1383122-20200411190359629-713089288.png)
 
 **服务端：**
 
@@ -363,17 +363,15 @@ public class ChatClientCopy extends ChatClient{
 
 ChatClient:
 
-![](E:\git\WexNote\Audition Points\imgs\1591926450(1).jpg)
-
-
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926450(1).jpg)
 
 ChatClientCopy:
 
-![](E:\git\WexNote\Audition Points\imgs\1591926483(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926483(1).jpg)
 
 ChatServer:
 
-![](E:\git\WexNote\Audition Points\imgs\1591926511(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926511(1).jpg)
 
 
 
@@ -622,11 +620,11 @@ public class UserInputHandler implements Runnable{
 
 **效果：**
 
-![](E:\git\WexNote\Audition Points\imgs\1591934584(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934584(1).jpg)
 
-![](E:\git\WexNote\Audition Points\imgs\1591934634(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934634(1).jpg)
 
-![](E:\git\WexNote\Audition Points\imgs\1591934662(1).jpg)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934662(1).jpg)
 
 
 
@@ -646,8 +644,4 @@ public class UserInputHandler implements Runnable{
 - **read：**socket.read(buffer,attachment,handler)。buffer是缓冲区，用以存放读取到的信息。后面两个参数和accept一样。
 - **write：**socket.write(buffer,attachment,handler)。和read参数一样。
 - **connect：**socket.connect(address,attachment,handler)。address为服务器的IP和端口，后面两个参数与前几个一样。
-
-【‘
-
-
 

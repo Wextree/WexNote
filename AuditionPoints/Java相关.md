@@ -424,7 +424,7 @@ System.out.println(qe1);
 - ListIterator**继承了**Iterator接口，它用于**遍历List集合的元素**。
 - ListIterator可以实现**双向遍历,添加元素，设置元素**
 
-![](imgs\640.webp)
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/640.webp)
 
 ```java
 public class LinkedListE {
