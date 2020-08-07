@@ -195,7 +195,7 @@
 
 ## nginx配置实例
 
-```conf
+```properties
 #定义 nginx 运行的用户和用户组
 user www www;
 
@@ -393,21 +393,99 @@ http {
 
 ## nginx服务器基础配置指令
 
+### nginx.conf 文件的结构
+
+> 所有指令都以 ; 结尾
+
+- **Global：** nginx运行相关
+- **events：** 与用户的网络连接相关
+- **http**
+  - **http Global：** 代理、缓存、日志以及第三方模块的配置
+  - **server**
+    - **server Global：** 虚拟机相关
+    - **location：** 地址定向、数据缓存、应答控制，以及第三方模块的配置
+
+
+
+### nginx 运行相关的Global部分
+
+#### 配置运行nginx服务器的用户
+
+`user nobody nobody`
+
+#### 配置允许生成的 worker process 数
+
+> 这个数字，跟电脑 CPU 核数要保持一致
+
+`worker_processes auto; `
+
+`worker_processes 4;`
+
+#### 配置 nginx 进程 PID 存放路径
+
+> 这里面保存的就是一个数字，nginx master 进程的进程号
+
+`pid logs/nginx.pid;`
+
+#### 配置错误日志的存放路径
+
+`error_log logs/error.log;`
+
+ `error_log logs/error.log error;`
+
+#### 配置文件的引入
+
+`include mime.types; `
+
+`include fastcgi_params; include ../../conf/*.conf;`
+
+
+
+### 与用户的网络连接相关的events
+
+#### 设置网络连接的序列化
+
+> 对多个 nginx 进程接收连接进行序列化，防止多个进程对连接的争抢（惊群）
+
+`accept_mutex on;`
+
+#### 设置是否允许同时接收多个网络连接
+
+`multi_accept off;`
+
+#### 事件驱动模型的选择
+
+`use select|poll|kqueue|epoll|rtsig|/dev/poll|eventport`
+
+#### 配置最大连接数
+
+`worker_connections 512;`
+
+
+
+### http
+
+#### http Global 代理 - 缓存 - 日志 - 第三方模块配置
+
+**定义 MIME-Type**
+
+`include mime.types; `
+
+`default_type application/octet-stream;`
+
+
+
+**自定义服务日志**
+
+`access_log logs/access.log main; `
+
+`access_log off;`
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+#### server
 
 
 
