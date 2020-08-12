@@ -119,6 +119,15 @@ Spring核心的配置文件`applicationContext.xml`或者叫`bean.xml`
 
 依赖注入可以通过setter方法注入，构造器注入和接口注入三种方式来实现。
 
+接口注入由于在灵活性和易用性比较差，现在从Spring4开始已被废弃。
+
+| **构造函数注入**           | **setter** **注入**        |
+| -------------------------- | -------------------------- |
+| 没有部分注入               | 有部分注入                 |
+| 不会覆盖 setter 属性       | 会覆盖 setter 属性         |
+| 任意修改都会创建一个新实例 | 任意修改不会创建一个新实例 |
+| 适用于设置很多属性         | 适用于设置少量属性         |
+
 
 
 ## AOP
@@ -747,7 +756,7 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 ## 面试问题
 
-### Bean作用域
+### 1. Bean作用域
 
 **早期版本只有两个作用域：**
 
@@ -768,7 +777,7 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
-### 自动装配方式
+### 2. 自动装配方式
 
 如果当我们类中的依赖引用只有一个相同类型的Bean时，Spring会使用AutoWired帮我们自动装配，也不会存在什么冲突的问题，但是如果是多种相同类型的Bean存在，这时我们就需要Spring按照某种规则帮我们找到所需要的Bean进行装配。
 
@@ -780,7 +789,7 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
-## BeanFactory & ApplicationContext
+## 3. BeanFactory & ApplicationContext
 
 ### BeanFactory
 
@@ -800,7 +809,7 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
-### 区别
+### 4. 区别
 
 - 对于singleton实例对象，ApplicationContext不管你是不是想先加载，都会先实例化它。好处是可以预先加载，但坏处是浪费内存。
 - BeanFactory实例化对象时不会马上实例化，而是等到你要调用bean的时候（getBean）才会被实例化。好在节约内存，坏在速度比较慢，多用于移动设备的开发。
@@ -808,38 +817,155 @@ public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
 
 
 
+### 5. Spring 框架中都用到了哪些设计模式？
+
+1. 工厂模式：BeanFactory就是简单工厂模式的体现，用来创建对象的实例；
+
+2. 单例模式：Bean默认为单例模式。
+3. 代理模式：Spring的AOP功能用到了JDK的动态代理和CGLIB字节码生成技术；
+4. 模板方法：用来解决代码重复的问题。比如. RestTemplate, JmsTemplate, JpaTemplate。
+5. 观察者模式：定义对象键一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都会得到通知被制动更新，如Spring中listener的实现–ApplicationListener。
+
+
+
+### 6. Spring框架中的单例bean是线程安全的吗？
+
+- 不是，Spring框架中的单例bean不是线程安全的。
+
+- spring 中的 bean 默认是单例模式，spring 框架并没有对单例 bean 进行多线程的封装处理。
+
+- 实际上大部分时候 spring bean 无状态的（比如 dao 类），所有某种程度上来说 bean 也是安全的，但如果 bean 有状态的话（比如 view model 对象），那就要开发者自己去保证线程安全了，最简单的就是改变 bean 的作用域，把“singleton”变更为“prototype”，这样请求 bean 相当于 new Bean()了，所以就可以保证线程安全了。
+  - 有状态就是有数据存储功能。
+  - 无状态就是不会保存数据。
 
 
 
 
+### 7. Spring如何处理线程并发问题？
+
+- 在一般情况下，只有无状态的Bean才可以在多线程环境下共享，在Spring中，绝大部分Bean都可以声明为singleton作用域，因为Spring对一些Bean中非线程安全状态采用ThreadLocal进行处理，解决线程安全问题。
+
+- ThreadLocal和线程同步机制都是为了解决多线程中相同变量的访问冲突问题。同步机制采用了“时间换空间”的方式，仅提供一份变量，不同的线程在访问前需要获取锁，没获得锁的线程则需要排队。而ThreadLocal采用了“空间换时间”的方式。
+
+- ThreadLocal会为每一个线程提供一个独立的变量副本，从而隔离了多个线程对数据的访问冲突。因为每一个线程都拥有自己的变量副本，从而也就没有必要对该变量进行同步了。ThreadLocal提供了线程安全的共享对象，在编写多线程代码时，可以把不安全的变量封装进ThreadLocal。
 
 
 
+### 8. 解释Spring框架中bean的生命周期
+
+![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1717443ebe68c24f.jpg)
+
+1. Spring对bean进行实例化；
+
+2. Spring将值和bean的引用注入到bean对应的属性中；
+
+3. 如果bean实现了BeanNameAware接口，Spring将bean的ID传递给setBean-Name()方法；
+
+4. 如果bean实现了BeanFactoryAware接口，Spring将调用setBeanFactory()方法，将BeanFactory容器实例传入；
+5. 如果bean实现了ApplicationContextAware接口，Spring将调用setApplicationContext()方法，将bean所在的应用上下文的引用传入进来；
+6. 如果bean实现了BeanPostProcessor接口，Spring将调用它们的post-ProcessBeforeInitialization()方法；
+7. 如果bean实现了InitializingBean接口，Spring将调用它们的after-PropertiesSet()方法。类似地，如果bean使用initmethod声明了初始化方法，该方法也会被调用；
+8. 如果bean实现了BeanPostProcessor接口，Spring将调用它们的post-ProcessAfterInitialization()方法；
+9. 此时，bean已经准备就绪，可以被应用程序使用了，它们将一直驻留在应用上下文中，直到该应用上下文被销毁；
+10. 如果bean实现了DisposableBean接口，Spring将调用它的destroy()接口方法。同样，如果bean使用destroy-method声明了销毁方法，该方法也会被调用。
+
+> 现在你已经了解了如何创建和加载一个Spring容器。但是一个空的容器并没有太大的价值，在你把东西放进去之前，它里面什么都没有。为了从Spring的DI(依赖注入)中受益，我们必须将应用对象装配进Spring容器中。
 
 
 
+### 9. @Autowired和@Resource之间的区别
+
+- @Autowired和@Resource可用于：构造函数、成员变量、Setter方法
+
+- @Autowired和@Resource之间的区别在于
+  - @Autowired默认是按照类型装配注入的，默认情况下它要求依赖对象必须存在（可以设置它required属性为false）。
+  - @Resource默认是按照名称来装配注入的，只有当找不到与名称匹配的bean才会按照类型来装配注入。
 
 
 
+### 10. Spring支持的事务管理类型， spring 事务实现方式有哪些？
+
+Spring支持两种类型的事务管理：
+
+- **编程式事务管理**：这意味你通过编程的方式管理事务，给你带来极大的灵活性，但是难维护。
+- **声明式事务管理**：这意味着你可以将业务代码和事务管理分离，你只需用注解和XML配置来管理事务。
+
+> Spring事务的本质其实就是数据库对事务的支持，没有数据库的事务支持，spring是无法提供事务功能的。
 
 
 
+### 11. 说一下 spring 的事务隔离？
+
+spring 有五大隔离级别，默认值为 ISOLATION_DEFAULT（使用数据库的设置），其他四个隔离级别和数据库的隔离级别一致：
+
+1. ISOLATION_DEFAULT：用底层数据库的设置隔离级别，数据库设置的是什么我就用什么；
+2. ISOLATION_READ_UNCOMMITTED：未提交读，最低隔离级别、事务未提交前，就可被其他事务读取（会出现幻读、脏读、不可重复读）；
+3. ISOLATION_READ_COMMITTED：提交读，一个事务提交后才能被其他事务读取到（会造成幻读、不可重复读），SQL server 的默认级别；
+4. ISOLATION_REPEATABLE_READ：可重复读，保证多次读取同一个数据时，其值都和事务开始时候的内容是一致，禁止读取到别的事务未提交的数据（会造成幻读），MySQL 的默认级别；
+5. ISOLATION_SERIALIZABLE：序列化，代价最高最可靠的隔离级别，该隔离级别能防止脏读、不可重复读、幻读。
+
+> **脏读** ：表示一个事务能够读取另一个事务中还未提交的数据。比如，某个事务尝试插入记录 A，此时该事务还未提交，然后另一个事务尝试读取到了记录 A。
+>
+> **不可重复读** ：是指在一个事务内，多次读同一数据。
+>
+> **幻读** ：指同一个事务内多次查询返回的结果集不一样。比如同一个事务 A 第一次查询时候有 n 条记录，但是第二次同等条件下查询却有 n+1 条记录，这就好像产生了幻觉。发生幻读的原因也是另外一个事务新增或者删除或者修改了第一个事务结果集里面的数据，同一个记录的数据内容被修改了，所有数据行的记录就变多或者变少了。
 
 
 
+### 12. JDK动态代理和CGLIB动态代理的区别
+
+Spring AOP中的动态代理主要有两种方式，JDK动态代理和CGLIB动态代理：
+
+- JDK动态代理只提供接口的代理，不支持类的代理。核心InvocationHandler接口和Proxy类，InvocationHandler 通过invoke()方法反射来调用目标类中的代码，动态地将横切逻辑和业务编织在一起；接着，Proxy利用 InvocationHandler动态创建一个符合某一接口的的实例, 生成目标类的代理对象。
+- 如果代理类没有实现 InvocationHandler 接口，那么Spring AOP会选择使用CGLIB来动态代理目标类。CGLIB（Code Generation Library），是一个代码生成的类库，可以在运行时动态的生成指定类的一个子类对象，并覆盖其中特定方法并添加增强代码，从而实现AOP。CGLIB是通过继承的方式做的动态代理，因此如果某个类被标记为final，那么它是无法使用CGLIB做动态代理的。
+
+静态代理与动态代理区别在于生成AOP代理对象的时机不同，相对来说AspectJ的静态代理方式具有更好的性能，但是AspectJ需要特定的编译器进行处理，而Spring AOP则无需特定的编译器处理。
+
+> InvocationHandler 的 invoke(Object proxy,Method method,Object[] args)：proxy是最终生成的代理实例; method 是被代理目标实例的某个具体方法; args 是被代理目标实例某个方法的具体入参, 在方法反射调用时使用。
 
 
 
+### 13. 解释一下Spring AOP里面的几个名词
+
+（1）切面（Aspect）：切面是通知和切点的结合。通知和切点共同定义了切面的全部内容。 在Spring AOP中，切面可以使用通用类（基于模式的风格） 或者在普通类中以 @AspectJ 注解来实现。
+
+（2）连接点（Join point）：指方法，在Spring AOP中，一个连接点 总是 代表一个方法的执行。 应用可能有数以千计的时机应用通知。这些时机被称为连接点。连接点是在应用执行过程中能够插入切面的一个点。这个点可以是调用方法时、抛出异常时、甚至修改一个字段时。切面代码可以利用这些点插入到应用的正常流程之中，并添加新的行为。
+
+（3）通知（Advice）：在AOP术语中，切面的工作被称为通知。
+
+（4）切入点（Pointcut）：切点的定义会匹配通知所要织入的一个或多个连接点。我们通常使用明确的类和方法名称，或是利用正则表达式定义所匹配的类和方法名称来指定这些切点。
+
+（5）引入（Introduction）：引入允许我们向现有类添加新方法或属性。
+
+（6）目标对象（Target Object）： 被一个或者多个切面（aspect）所通知（advise）的对象。它通常是一个代理对象。也有人把它叫做 被通知（adviced） 对象。 既然Spring AOP是通过运行时代理实现的，这个对象永远是一个 被代理（proxied） 对象。
+
+（7）织入（Weaving）：织入是把切面应用到目标对象并创建新的代理对象的过程。在目标对象的生命周期里有多少个点可以进行织入：
+
+- 编译期：切面在目标类编译时被织入。AspectJ的织入编译器是以这种方式织入切面的。
+- 类加载期：切面在目标类加载到JVM时被织入。需要特殊的类加载器，它可以在目标类被引入应用之前增强该目标类的字节码。AspectJ5的加载时织入就支持以这种方式织入切面。
+- 运行期：切面在应用运行的某个时刻被织入。一般情况下，在织入切面时，AOP容器会为目标对象动态地创建一个代理对象。SpringAOP就是以这种方式织入切面。
 
 
 
+### 14. Spring在运行时通知对象
+
+通过在代理类中包裹切面，Spring在运行期把切面织入到Spring管理的bean中。代理封装了目标类，并拦截被通知方法的调用，再把调用转发给真正的目标bean。当代理拦截到方法调用时，在调用目标bean方法之前，会执行切面逻辑。
+
+直到应用需要被代理的bean时，Spring才创建代理对象。如果使用的是ApplicationContext的话，在ApplicationContext从BeanFactory中加载所有bean的时候，Spring才会创建被代理的对象。因为Spring运行时才创建代理对象，所以我们不需要特殊的编译器来织入SpringAOP的切面。
 
 
 
+### 15. Spring通知有哪些类型？
 
+在AOP术语中，切面的工作被称为通知，实际上是程序执行时要通过SpringAOP框架触发的代码段。
 
+Spring切面可以应用5种类型的通知：(利用try - catch - finally各个部分去理解)
 
-
+1. 前置通知（Before）：在目标方法被调用之前调用通知功能；
+2. 后置通知（After）：在目标方法完成之后调用通知，此时不会关心方法的输出是什么；
+3. 返回通知（After-returning ）：在目标方法成功执行之后调用通知；
+4. 异常通知（After-throwing）：在目标方法抛出异常后调用通知；
+5. 环绕通知（Around）：通知包裹了被通知的方法，在被通知的方法调用之前和调用之后执行自定义的行为。
 
 
 
