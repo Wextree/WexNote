@@ -935,3 +935,203 @@ public class UserControllerTest {
 
 
 
+
+
+## 面试问题
+
+### 1. Spring Boot 有哪些优点？
+
+- Spring Boot 主要有如下优点：
+  1. 容易上手，提升开发效率，为 Spring 开发提供一个更快、更简单的开发框架。
+  2. 开箱即用，远离繁琐的配置。
+  3. 提供了一系列大型项目通用的非业务性功能，例如：内嵌服务器、安全管理、运行数据监控、运行状况检查和外部化配置等。
+  4. SpringBoot总结就是使编码变简单、配置变简单、部署变简单、监控变简单等等
+
+
+
+### 2. Spring Boot 2.X 有什么新特性？与 1.X 有什么区别？
+
+- 配置变更
+- JDK 版本升级
+- 第三方类库升级
+- 响应式 Spring 编程支持
+- HTTP/2 支持
+- 配置属性绑定
+- 更多改进与加强
+
+
+
+### 3. 运行 Spring Boot 有哪几种方式？
+
+1. 打包用命令或者放到容器中运行
+2. 用 Maven/ Gradle 插件运行
+3. 直接执行 main 方法运行
+
+
+
+### 4. SpringBoot事务和异步的使用
+
+- SpringBoot的事务很简单，首先使用注解**EnableTransactionManagement**开启事物之后，然后在Service方法上添加注解**Transactional**便可。
+
+- 在SpringBoot中使用异步调用是很简单的，只需要在方法上使用**@Async**注解即可实现方法的异步调用。
+
+   注意：需要在启动类加入**@EnableAsync**使异步调用@Async注解生效。
+
+
+
+
+
+### 5. 如何在 Spring Boot 启动的时候运行一些特定的代码？
+
+可以实现接口 **ApplicationRunner** 或者 **CommandLineRunner**，这两个接口实现方式一样，它们都只提供了一个 run 方法
+
+
+
+### 6. Spring Boot 有哪几种读取配置的方式？
+
+Spring Boot 可以通过 **@PropertySource**,**@Value**,**@Environment**, **@ConfigurationPropertie**注解来绑定变量
+
+
+
+### 7. Spring Boot 配置加载顺序？
+
+在 Spring Boot 里面，可以使用以下几种方式来加载配置。
+
+1. properties文件；
+2. YAML文件；
+3. 系统环境变量；
+4. 命令行参数；
+5. 等等……
+
+
+
+### 8. YAML
+
+- YAML 是一种人类可读的数据序列化语言。它通常用于配置文件。与属性文件相比，如果我们想要在配置文件中添加复杂的属性，YAML 文件就更加结构化，而且更少混淆。可以看出 YAML 具有分层配置数据。
+
+- YAML 现在可以算是非常流行的一种配置文件格式了，无论是前端还是后端，都可以见到 YAML 配置。那么 YAML 配置和传统的 properties 配置相比到底有哪些优势呢？
+  - 配置有序，在一些特殊的场景下，配置有序很关键
+  - 简洁明了，他还支持数组，数组中的元素可以是基本数据类型也可以是对象
+  - 相比 properties 配置文件，YAML 还有一个缺点，就是不支持 @PropertySource 注解导入自定义的 YAML 配置
+
+
+
+### 9. spring boot 核心配置文件是什么？bootstrap.properties 和 application.properties 有何区别 ?
+
+- 单纯做 Spring Boot 开发，可能不太容易遇到 bootstrap.properties 配置文件，但是在结合 Spring Cloud 时，这个配置就会经常遇到了，特别是在需要加载一些远程配置文件的时侯。
+
+- spring boot 核心的两个配置文件：
+  - bootstrap (. yml 或者 . properties)：boostrap 由父 ApplicationContext 加载的，比 applicaton 优先加载，配置在应用程序上下文的引导阶段生效。一般来说我们在 Spring Cloud 配置就会使用这个文件。且 boostrap 里面的属性不能被覆盖；
+  - application (. yml 或者 . properties)： 由ApplicatonContext 加载，用于 spring boot 项目的自动化配置。
+
+
+
+
+### 10. 保护 Spring Boot 应用有哪些方法？
+
+- 在生产中使用HTTPS
+- 使用Snyk检查你的依赖关系
+- 升级到最新版本
+- 启用CSRF保护
+- 使用内容安全策略防止XSS攻击
+
+
+
+### 11. Spring Boot 中如何解决跨域问题 ?
+
+
+
+- 跨域可以在前端通过 JSONP 来解决，但是 JSONP 只可以发送 GET 请求，无法发送其他类型的请求，在 RESTful 风格的应用中，就显得非常鸡肋，因此我们推荐在后端通过 （CORS，Cross-origin resource sharing） 来解决跨域问题。这种解决方案并非 Spring Boot 特有的，在传统的 SSM 框架中，就可以通过 CORS 来解决跨域问题，只不过之前我们是在 XML 文件中配置 CORS ，现在可以通过实现WebMvcConfigurer接口然后重写addCorsMappings方法解决跨域问题。
+
+```java
+  @Configuration
+  public class CorsConfig implements WebMvcConfigurer {
+
+      @Override
+      public void addCorsMappings(CorsRegistry registry) {
+          registry.addMapping("/**")
+                  .allowedOrigins("*")
+                  .allowCredentials(true)
+                  .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                  .maxAge(3600);
+      }
+
+  }
+```
+
+
+
+### 12. 如何使用 Spring Boot 实现全局异常处理？
+
+Spring 提供了一种使用 **ControllerAdvice** 处理异常的非常有用的方法。 我们通过实现一个 ControlerAdvice 类，来处理控制器类抛出的所有异常。
+
+
+
+### 13. SpringBoot性能如何优化
+
+- 如果项目比较大，类比较多，不使用@SpringBootApplication，采用@Compoment指定扫包范围
+- 在项目启动时设置JVM初始内存和最大内存相同
+- 将springboot内置服务器由tomcat设置为undertow
+
+> Undertow Undertow是一个Java开发的灵活的高性能Web服务器，提供包括阻塞和基于NIO的非阻塞机制。Undertow是红帽公司的开源产品，是Wildfly默认的Web服务器。 SpringBoot2中可以将Web服务器切换到Undertow来提高应用性能。
+
+
+
+### 14. 如何重新加载 Spring Boot 上的更改，而无需重新启动服务器？Spring Boot项目如何热部署？
+
+- 这可以使用 DEV 工具来实现。通过这种依赖关系，您可以节省任何更改，嵌入式tomcat 将重新启动。Spring Boot 有一个开发工具（DevTools）模块，它有助于提高开发人员的生产力。Java 开发人员面临的一个主要挑战是将文件更改自动部署到服务器并自动重启服务器。开发人员可以重新加载 Spring Boot 上的更改，而无需重新启动服务器。这将消除每次手动部署更改的需要。Spring Boot 在发布它的第一个版本时没有这个功能。这是开发人员最需要的功能。DevTools 模块完全满足开发人员的需求。该模块将在生产环境中被禁用。它还提供 H2 数据库控制台以更好地测试应用程序。
+
+```
+<dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-devtools</artifactId>
+</dependency>
+```
+
+
+
+### 15. Spring Boot 中的 starter 到底是什么 ?
+
+- 首先，这个 Starter 并非什么新的技术点，基本上还是基于 Spring 已有功能来实现的。首先它提供了一个自动化配置类，一般命名为 `XXXAutoConfiguration` ，在这个配置类中通过条件注解来决定一个配置是否生效（条件注解就是 Spring 中原本就有的），然后它还会提供一系列的默认配置，也允许开发者根据实际情况自定义相关配置，然后通过类型安全的属性(spring.factories)注入将这些配置属性注入进来，新注入的属性会代替掉默认属性。正因为如此，很多第三方框架，我们只需要引入依赖就可以直接使用了。当然，开发者也可以自定义 Starter
+
+
+
+
+
+### 16. spring-boot-starter-parent 有什么用 ?
+
+- 我们都知道，新创建一个 Spring Boot 项目，默认都是有 parent 的，这个 parent 就是 spring-boot-starter-parent ，spring-boot-starter-parent 主要有如下作用：
+  1. 定义了 Java 编译版本为 1.8 。
+  2. 使用 UTF-8 格式编码。
+  3. 继承自 spring-boot-dependencies，这个里边定义了依赖的版本，也正是因为继承了这个依赖，所以我们在写依赖时才不需要写版本号。
+  4. 执行打包操作的配置。
+  5. 自动化的资源过滤。
+  6. 自动化的插件配置。
+  7. 针对 application.properties 和 application.yml 的资源过滤，包括通过 profile 定义的不同环境的配置文件，例如 application-dev.properties 和 application-dev.yml。
+- 总结就是打包用的
+
+
+
+### 17. Spring Boot 打成的 jar 和普通的 jar 有什么区别 ?
+
+- Spring Boot 项目最终打包成的 jar 是可执行 jar ，这种 jar 可以直接通过 `java -jar xxx.jar` 命令来运行，这种 jar 不可以作为普通的 jar 被其他项目依赖，即使依赖了也无法使用其中的类。
+- Spring Boot 的 jar 无法被其他项目依赖，主要还是他和普通 jar 的结构不同。普通的 jar 包，解压后直接就是包名，包里就是我们的代码，而 Spring Boot 打包成的可执行 jar 解压后，在 `\BOOT-INF\classes` 目录下才是我们的代码，因此无法被直接引用。如果非要引用，可以在 pom.xml 文件中增加配置，将 Spring Boot 项目打包成两个 jar ，一个可执行，一个可引用。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
