@@ -108,7 +108,7 @@ Externalizable**继承了Serializable**，该接口中定义了两个抽象方�
 
 ### 游离态
 
-当Session进行了close()、clear()、evict()或flush()后，实体对象从持久态变成游离态，对象虽然拥有持久和数据库对应记录一致的标识值，但是对象已经从会话中清除掉，对象不在持久化管理之内，所以处于游离态（也叫托管态）。游离态的对象与临时状态对象是十分相似的，知识它还含有持久化标识。
+当Session进行了close()、clear()、evict()或flush()后，实体对象从持久态变成游离态，对象虽然拥有持久和数据库对应记录一致的标识值，但是对象已经从会话中清除掉，对象不在持久化管理之内，所以处于游离态（也叫托管态）。游离态的对象与临时状态对象是十分相似的，只是它还含有持久化标识。
 
 
 
@@ -180,11 +180,11 @@ HashMap将Entry对象存储在一个数组中，并通过**哈希表**来实现�
 
 ##### LinkedHashMap
 
-LinkedHashMap与HashMap非常类似，唯一的不同在于前者的Entry在HashMap.Entry的基础上增加了到前一个插入和后一个插入的Entry的引用，以实现能够按Entry的插入顺序进行遍历。
+LinkedHashMap与HashMap非常类似，唯一的不同在于前者的Entry在HashMap.Entry的基础上增加了到前一个插入和后一个插入的Entry的引用，以实现能够**按Entry的插入顺序**进行遍历。
 
 ##### TreeMap
 
-TreeMap是基于红黑树实现的Map结构，其Entry类拥有到左/右叶子节点和父节点的引用，同时还记录了自己的颜色。
+TreeMap是基于**红黑树**实现的Map结构，其Entry类拥有到左/右叶子节点和父节点的引用，同时还记录了自己的颜色。
 
 
 
@@ -237,7 +237,7 @@ TreeSet是**SortedSet接口的实现类**，正如SortedSet名字所暗示的，
 
   对于TreeSet集合而言，判断两个对象是否相等的**唯一标准**是：**两个对象通过compareTo(Object obj)方法比较是否返回0**——如果通过compareTo(Object obj)方法比较返回0，TreeSet则会认为它们相等，不予添加入集合内；否则就认为它们不相等，添加到集合内。
 
-TreeSet的自然排序是根据集合元素中compareTo(Object obj)比较的大小，以升序排列。而定制排序是通过Comparator接口的帮助。该接口包含一个int compare(T o1,T o2)方法，该方法用于比较o1,o2的大小：如果该方法返回正整数，则表明o1大于o2；如果该方法返回0，则表明o1等于o2;如果该方法返回负整数，则表明o1小于o2。
+TreeSet的自然排序是根据集合元素中**compareTo(Object obj)**比较的大小，以升序排列。而定制排序是通过Comparator接口的帮助。该接口包含一个int compare(T o1,T o2)方法，该方法用于比较o1,o2的大小：如果该方法返回正整数，则表明o1大于o2；如果该方法返回0，则表明o1等于o2;如果该方法返回负整数，则表明o1小于o2。
  如果要实现定制排序，则需要在创建TreeSet时，调用一个带参构造器，传入Comparator对象。并有该Comparator对象负责集合元素的排序逻辑，集合元素可以不必实现Comparable接口。下面具体演示一下这种用法：
 
 ```java
@@ -363,8 +363,6 @@ equals **本质上就是 ==**，只不过 String 和 Integer 等重写了 equals
 
 
 ### Iterator
-
-![](imgs\20141127192847281.png)
 
 在创建Collection接口的同时，集合类库也创建了Iterator接口，这个接口的对象是一个**迭代器**，他会**依次遍历**集合中所有的元素。在开始的时候，如果集合是有序的，那么通过Collection接口的iterator方法返回的迭代器对象会**在集合起始位置**。
 
@@ -559,7 +557,7 @@ public class LinkedListE {
 - 尽管可以用this调用一个构造器，但却不能调用两个。
 - this和super不能同时出现在一个构造函数里面，因为this必然会调用其它的构造函数，其它的构造函数必然也会有super语句的存在，所以在同一个构造函数里面有相同的语句，就失去了语句的意义，编译器也不会通过。
 - this()和super()都指的是对象，所以，均不可以在static环境中使用。包括：static变量,static方法，static语句块。
-- 从本质上讲，this是一个指向本对象的指针, 然而super是一个Java关键字。。
+- 从本质上讲，this是一个**指向本对象的指针**, 然而super是一个**Java关键字**。。
 
 
 

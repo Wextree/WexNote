@@ -1,6 +1,6 @@
 # 注解开发
 
-## 准备
+## 一、准备
 
 **设置配置类，将其他类注册在容器中：**
 
@@ -57,9 +57,9 @@ person
 
 
 
-## ComponentScan
+## 二、ComponentScan
 
-### 排除扫描的类
+### 1. 排除扫描的类
 
 ```java
 @Configuration
@@ -92,7 +92,7 @@ person
 
 
 
-### 只包含某些类
+### 2. 只包含某些类
 
 > 但是要取消默认扫描，不然没有效果，因为默认规则是全部扫描
 
@@ -126,7 +126,7 @@ person
 
 
 
-### 多个规则
+### 3. 多个规则
 
 ```java
 @ComponentScans(value = {
@@ -145,7 +145,7 @@ person
 
 
 
-## FilterType
+## 三、FilterType
 
 ```java
 // 以注解方式排除，排除Controller注解的类
@@ -188,7 +188,7 @@ public class MyTypeFilter implements TypeFilter {
 }
 ```
 
-**配置雷：**
+**配置类：**
 
 ```java
 @Configuration
@@ -222,7 +222,7 @@ bookService
 
 
 
-## Conditional
+## 四、Conditional
 
 > 可以按照条件进行注册bean
 
@@ -304,7 +304,9 @@ wu
 
 
 
-## Import
+## 五、注册组件
+
+### 1. Import
 
 **快速注册一个组件，名字默认是全限定类名：**
 
@@ -316,7 +318,7 @@ public class MainConfiguration1 {}
 
 
 
-## ImportSelector
+### 2. ImportSelector
 
 > 实现该接口可以配合@Import注解实现快速导入多个组件
 
@@ -366,7 +368,7 @@ public class MyImportBeanDefinitionRegistrar implements ImportBeanDefinitionRegi
 
 
 
-## FactoryBean 
+### 3. FactoryBean 
 
 继承FactoryBean实现工厂类添加Bean
 
@@ -441,7 +443,7 @@ System.out.println(applicationContext.getBean("&colorBeanFactory").getClass());
 
 
 
-## 生命周期
+## 六、生命周期
 
 ### 第一种
 
@@ -565,7 +567,7 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
 
 
 
-## BeanPostProcessor
+## 七、BeanPostProcessor
 
 ## 原理
 
@@ -624,6 +626,152 @@ public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, S
     return result;
 }
 ```
+
+
+
+
+
+## 八、属性赋值
+
+### @Value
+
+1. 直接在后面写上对应属性的值。
+2. 使用`”#{}“`加上Spel表达式进行赋值。
+
+```java
+public class Person {
+    @Value("#{20-1}")
+    private Integer id;
+    @Value("zhangsan")
+    private String name;   
+}
+```
+
+3. 结合**@PropertySource**从配置文件中获取。
+
+```java
+@PropertySource(value = {"classpath:person.properties"})
+```
+
+```java
+@Value("${name}")
+private String name;
+```
+
+```properties
+person.name = zhangsan
+```
+
+
+
+## 九、自动装配
+
+### 1. @Autowired
+
+```java
+@Autowired
+private BookDao bookDao;
+```
+
+1. **默认先按照类型**导入。
+2. 如果有多个相同类型的，那么按照**属性名**作为ID去查找。
+3. `@Qualifier("bookDao")`使用该注解可以**强制**进行区分选择。
+4. 默认情况下，若没有找到，就会报错。可以设置`@Autowired(required = false)`不报错。
+5. **@Primary**可以让Spring默认首选的bean。
+
+
+
+#### 注解标注位置
+
+```java
+@Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.PARAMETER, ElementType.FIELD, ElementType.ANNOTATION_TYPE})
+```
+
+可以在**构造器、参数、方法、属性**上进行标注。
+
+- **加在setter方法上**：单组件装配上属性的时候，会从Ioc容器中找到对应的组件加入。
+- **加在有参构造器（或者加在构造器的参数上）**：也会从容器中自动配置。
+- **@Bean**标注的方法创建对象的时候，方法参数的值从容器中获取。
+
+
+
+### 2. @Resource（JSR250规则）和@Inject（JSR330规则）
+
+> 这些都是java规范的注解（不是Spring框架）
+
+- **@Resource**：
+  - 这也可以实现自动装配，但是这个自动装配默认是按照名称进行配置的，可以使用`name`属性进行控制。
+  - 但是没有**@Primary**和**required = false**的支持。
+
+- **@Inject**：
+  - 需要导入`javax.inject`的依赖才可以使用。
+  - 与**@Autowired**差不多。
+  - 支持**@Primary**，但是没有**required = false**的支持。
+
+
+
+### 3. @Autowired注入底层组件及原理
+
+自定义组件实现xxxAware；在创建对象的时候，会调用规定的方法注入。
+
+**Aware**是一个接口，实现这个接口，可以通过回调方法来使用Spring容器底层组件的功能。
+
+```java
+/**
+ * A marker superinterface indicating that a bean is eligible to be notified by the
+ * Spring container of a particular framework object through a callback-style method.
+ * The actual method signature is determined by individual subinterfaces but should
+ * typically consist of just one void-returning method that accepts a single argument.
+ *
+ */
+public interface Aware {
+
+}
+```
+
+
+
+#### 常用的Aware实现类
+
+```java
+// ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware
+public class Red implements ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware {
+    // 用来对容器进行一个保存
+    private ApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        System.out.println("IoC容器：" + applicationContext);
+        this.applicationContext = applicationContext;
+    }
+
+
+    // 获取当前组件注册在容器中的名字
+    @Override
+    public void setBeanName(String name) {
+        System.out.println(name);
+    }
+
+
+    // 获取容器的字符串解析器
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver resolver) {
+        resolver.resolveStringValue("你好 ${os.name}");
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

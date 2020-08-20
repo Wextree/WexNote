@@ -11,12 +11,6 @@
             <version>3.17</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>net.sourceforge.jexcelapi</groupId>-->
-<!--            <artifactId>jxl</artifactId>-->
-<!--            <version>2.6.12</version>-->
-<!--        </dependency>-->
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
