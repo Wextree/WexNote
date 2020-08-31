@@ -545,11 +545,11 @@ redis > RPUSH numbers 1 "three" 5
 
 intset编码的集合结构：
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/640(7).webp)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/intset编码的集合结构.webp)
 
 hashtable编码的集合结构：
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/640(4).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/hashtable编码的集合结构.jpg)
 
 编码之间的**转换：**
 
