@@ -34,13 +34,15 @@
 
 ### 简介
 
- Eureka是Netflix开源的服务发现组件，本身是一个基于REST的服务，包含Server和Client两部分，Spring Cloud将它集成在子项目Spring Cloud Netflix中。在微服务系统中，我们需要单独创建一个Eureka Server作为注册中心，其他的微服务就相当于客户端，注册到我们的注册中心中。
+Eureka是Netflix开源的服务发现组件，本身是一个基于REST的服务，包含Server和Client两部分，Spring Cloud将它集成在子项目Spring Cloud Netflix中。在微服务系统中，我们需要单独创建一个Eureka Server作为注册中心，其他的微服务就相当于客户端，注册到我们的注册中心中。
 
 
 
 ### 服务发现
 
-原来我们服务间的调用，一般都是通过在消费者端配置生产者的ip和端口，来进行调用，但是，在微服务的环境中，服务数量可能会很多，而且，服务之间可能调用关系也会很多，如果还是配置ip和端口来互相调用的话，这个配置的工作就很庞杂，同时，如果某个微服务的ip发生了变化，那么带来的维护工作，也会很复杂。   因此，微服务中引入了服务发现组件，也就是**注册中心**，一般使用Eureka,也有其他的组件,Consul,zookeeper等。实际使用中，将微服务都注册到注册中心，注册中已经包含了微服务的ip等信息，这样，微服务之间互相调用时，就可以现在注册中心获取对应微服务的ip信息。这样就不用自己维护很多的配置文件了
+原来我们服务间的调用，一般都是通过在消费者端配置生产者的ip和端口，来进行调用，但是，在微服务的环境中，服务数量可能会很多，而且，服务之间可能调用关系也会很多，如果还是配置ip和端口来互相调用的话，这个配置的工作就很庞杂，同时，如果某个微服务的ip发生了变化，那么带来的维护工作，也会很复杂。   
+
+因此，微服务中引入了服务发现组件，也就是**注册中心**，一般使用Eureka,也有其他的组件,Consul,zookeeper等。实际使用中，将微服务都注册到注册中心，注册中已经包含了微服务的ip等信息，这样，微服务之间互相调用时，就可以现在注册中心获取对应微服务的ip信息。这样就不用自己维护很多的配置文件了
 
 
 
@@ -424,6 +426,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
 ### 服务间通信的其他方式：feign
 
+> Feign是Netflix开发的声明式、模板化的HTTP客户端， Feign可以帮助我们更快捷、优雅地调用HTTP API
+>
 > - 生命性REST客户端（伪RPC）
 > - 采用了基于接口的注解
 
@@ -707,7 +711,7 @@ public class EurekaClientApplication {
 
 - **配置区别：**
 
-  - bootstrap.yml 用来程序引导时执行，应用于更加早期配置信息读取。可以理解成**系统级别**的一些参数配置，这些参数一般是不会变动的。一旦bootStrap.yml 被加载，则**内容不会被覆盖**。
+  - bootstrap.yml 用来程序引导时执行，应用于更加早期配置信息读取。可以理解成**系统级别**的一些参数配置，这些参数一般是不会变动的。一旦bootstrap.yml 被加载，则**内容不会被覆盖**。
   - application.yml 可以用来定义**应用级别**的， 应用程序特有配置信息，可以用来配置后续各个模块中需使用的公共参数等。
 
 - **属性覆盖：**
@@ -870,7 +874,7 @@ public class GirlController {
 
 如果发现app:index:id中的index不一致， 举例yml配置：
 
-```
+```yaml
 vcap:
   application:
     instance_index: ${spring.cloud.config.profile}
@@ -878,7 +882,7 @@ vcap:
 
 或者直接修改bus.id的配置，如下：
 
-```
+```yaml
 spring:
   application:
     name: client

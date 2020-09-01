@@ -230,7 +230,7 @@ public String getDetails(
 
 1. 修改tomcat配置文件添加编码与工程编码一致，如下：
 
-```
+```xml
 <ConnectorURIEncoding="utf-8" connectionTimeout="20000" port="8080" protocol="HTTP/1.1" redirectPort="8443"/>
 ```
 
