@@ -55,7 +55,7 @@ public class StringTest {
 
         // 代替，可以是字符或者字符串
         String replace1 = string.replace('e', 'a');
-        String replace2 = string.replace("lo", "ss");
+        String replace2 = string.replace("l", "ss");
         System.out.println(replace1 + " " + replace2);
 
         // 获取对应的字节数组
