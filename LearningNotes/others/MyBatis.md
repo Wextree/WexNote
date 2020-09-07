@@ -14,9 +14,9 @@
 
 **优点**
 
-```
-与传统的数据库访问技术相比，ORM有以下优点：
-```
+
+与传统的数据库访问技术相比，**ORM有以下优点：**
+
 
 - **基于SQL语句编程**，相当灵活，不会对应用程序或者数据库的现有设计造成任何影响，SQL写在XML里，解除sql与程序代码的耦合，便于统一管理；提供XML标签，支持编写动态SQL语句，并可重用
 - 与JDBC相比，减少了50%以上的代码量，**消除了JDBC大量冗余的代码，不需要手动开关连接**
@@ -101,14 +101,10 @@
 
 1. 获取MyBatis配置文件流
 2. 通过SqlSessionFactoryBuilder传入文件流，创建SqlSessionFactory
-
-2、 通过SqlSessionFactory创建SqlSession
-
-3、 通过sqlsession创建Dao接口的动态代理对象，并执行数据库操作
-
-4、 调用session.commit()提交事务
-
-5、 调用session.close()关闭会话
+3. 通过SqlSessionFactory创建SqlSession
+4. 通过sqlsession创建Dao接口的动态代理对象，并执行数据库操作
+5. 调用session.commit()提交事务
+6. 调用session.close()关闭会话
 
 
 
@@ -483,12 +479,12 @@ public User selectUser(User user);
 
 
 
-### 3.13 Mybatis能执行一对多，一对一的联系查询吗，有哪些实现方法
+### 3.13 Mybatis能执行一对多，一对一的联级查询吗，有哪些实现方法
 
 - 能，不止可以一对多，一对一还可以多对多，一对多
 - 实现方式：
   1. 单独发送一个SQL去查询关联对象，赋给主对象，然后返回主对象
-  2. 使用嵌套查询，似JOIN查询，一部分是A对象的属性值，另一部分是关联对 象 B的属性值，好处是只要发送一个属性值，就可以把主对象和关联对象查出来
+  2. 使用嵌套查询，似JOIN查询，一部分是A对象的属性值，另一部分是关联对 象 B的属性值，好处是只要发送一个属性值，就可以把主对象和关联对象查出来  
   3. 子查询
 
 
@@ -573,7 +569,7 @@ public User selectUser(User user);
 
 ### 3.16 简述Mybatis的插件运行原理，以及如何编写一个插件。
 
-- Mybatis仅可以编写针对ParameterHandler、ResultSetHandler、StatementHandler、Executor这4种接口的插件，Mybatis使用JDK的动态代理，为需要拦截的接口生成代理对象以实现接口方法拦截功能，每当执行这4种接口对象的方法时，就会进入拦截方法，具体就是InvocationHandler的invoke()方法，当然，只会拦截那些你指定需要拦截的方法。
+- Mybatis仅可以编写针对**ParameterHandler、ResultSetHandler、StatementHandler、Executor**这4种接口的插件，Mybatis使用JDK的动态代理，为需要拦截的接口生成代理对象以实现接口方法拦截功能，每当执行这4种接口对象的方法时，就会进入拦截方法，具体就是InvocationHandler的invoke()方法，当然，只会拦截那些你指定需要拦截的方法。
 - 实现Mybatis的Interceptor接口并复写intercept()方法，然后在给插件编写注解，指定要拦截哪一个接口的哪些方法即可，记住，别忘了在配置文件中配置你编写的插件。
 
 

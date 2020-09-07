@@ -733,6 +733,8 @@ public interface Aware {
 
 #### 常用的Aware实现类
 
+> 使用对应的processor去执行的
+
 ```java
 // ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware
 public class Red implements ApplicationContextAware, BeanNameAware, EmbeddedValueResolverAware {
@@ -760,6 +762,758 @@ public class Red implements ApplicationContextAware, BeanNameAware, EmbeddedValu
     }
 }
 ```
+
+
+
+#### 底层原理
+
+自定义组件实现xxxAware，在创建对象的时候，会调用规定的方法注入相关的组件，把Spring底层的一些组件注入到自定义的Bean中。
+
+不同的Aware都是有对应的Processor进行处理的，其实这些都是后置处理器。比如**ApplicationContextAware**就会有对应的**ApplicationContextAwareProcessor**进行处理。
+
+ 在**注入IoC容器**那里打上断点，进行调试，查看左侧运行的栈：
+
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200905170202.png)
+
+进入**ApplicationContextAwareProcessor**的**postProcessBeforeInitialization**方法：
+
+```java
+// 传入我们自定义的类和对应的名称
+public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+   // 如果该类没有继承对应的Aware接口，不用处理直接返回
+   if (!(bean instanceof EnvironmentAware || bean instanceof EmbeddedValueResolverAware ||
+         bean instanceof ResourceLoaderAware || bean instanceof ApplicationEventPublisherAware ||
+         bean instanceof MessageSourceAware || bean instanceof ApplicationContextAware)){
+      return bean;
+   }
+
+   AccessControlContext acc = null;
+
+   // 获取这个类的安全权限
+   if (System.getSecurityManager() != null) {
+      acc = this.applicationContext.getBeanFactory().getAccessControlContext();
+   }
+
+   if (acc != null) {
+      // 安全性检测
+      AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+         invokeAwareInterfaces(bean);
+         return null;
+      }, acc);
+   }
+   else {
+      // 调用接口
+      invokeAwareInterfaces(bean);
+   }
+
+   return bean;
+}
+```
+
+```java
+// 查看该类实现了哪些Aware接口，使用对应的回调方法进行属性输入
+private void invokeAwareInterfaces(Object bean) {
+   if (bean instanceof EnvironmentAware) {
+      ((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+   }
+   if (bean instanceof EmbeddedValueResolverAware) {
+      ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+   }
+   if (bean instanceof ResourceLoaderAware) {
+      ((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+   }
+   if (bean instanceof ApplicationEventPublisherAware) {
+      ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+   }
+   if (bean instanceof MessageSourceAware) {
+      ((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+   }
+   if (bean instanceof ApplicationContextAware) {
+      ((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+   }
+}
+```
+
+
+
+### profile环境激活
+
+`@Profile`注解标注组件，只有对应的环境被激活才能被输入。（默认是default环境）
+
+> 可以直接写在配置类上面，那么整个类的组件都要在特定激活环境才可以使用，如果没有注解，那么默认什么环境都可以使用
+
+```java
+@Profile("default")
+@Bean
+```
+
+**切换环境的方法：**
+
+- **命令行**：在虚拟机参数位置加载 `-Dspring.profiles.active=test`
+
+- **通过Ioc容器设置环境**：
+
+  ```java
+  // 设置激活环境
+  applicationContext.getEnvironment().setActiveProfiles("test", "dev");
+  // 注册新的配置类
+  applicationContext.register(MainConfiguration.class);
+  // 重新刷新容器
+  applicationContext.refresh();
+  ```
+
+  
+
+## 十、 AOP
+
+### 实现一个简单的AOP功能
+
+1. 导入对应的依赖
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework</groupId>
+       <artifactId>spring-aspects</artifactId>
+       <version>5.2.7.RELEASE</version>
+   </dependency>
+   ```
+
+2. 定义一个类方法，待会为它加上AOP功能
+
+   ```java
+   public class HelloAOP {
+       
+       public void sayHello(){
+           System.out.println("Hello AOP!");
+       }
+   }
+   ```
+
+3. 定义一个切面日志类
+
+   ```java
+   public class AOPLog {
+   
+       // 切入点
+       @Pointcut("execution(public int com.wex.aop.HelloAOP.*(..))")
+       public void pointcut(){}
+   
+       // 在方法执行前
+       @Before("pointcut()")
+       public void logStart(){
+           System.out.println("logStart...");
+       }
+   
+       // 在方法执行后
+       @After("pointcut()")
+       public void logEnd(){
+           System.out.println("logEnd...");
+       }
+   
+       // 在返回值之后
+       @AfterReturning("pointcut()")
+       public void logReturn(){
+           System.out.println("logReturn...");
+       }
+   
+       // 执行异常之后
+       @AfterThrowing("pointcut()")
+       public void logException(){
+           System.out.println("logException...");
+       }
+   }
+   ```
+
+   个人理解，这几个位置就对应**try-catch-finally**框架的四个位置
+
+   ```java
+   try{
+       logStart
+       method..
+       logEnd
+   }catch(...){
+       logException
+   }finally{
+       return 0;
+       logReturn
+   }
+   ```
+
+4. 将两个类加入IoC容器，配置切面类标识，并且开启扫描切面注解
+
+   ```java
+   @EnableAspectJAutoProxy
+   @Configuration
+   public class MainConfigOfAOP {
+       
+       @Bean
+       public HelloAOP helloAOP(){
+           return new HelloAOP();
+       }
+       
+       @Bean
+       public AOPLog aopLog(){
+           return new AOPLog();
+       }
+   }
+   ```
+
+   ```java
+   @Aspect
+   public class AOPLog {}
+   ```
+
+5. 进行一个测试
+
+   ```java
+   public class AOPTest {
+   
+       @Test
+       public void test1(){
+           AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfigOfAOP.class);
+           HelloAOP helloAOP = applicationContext.getBean(HelloAOP.class);
+   
+           helloAOP.sayHello();
+       }
+   }
+   ```
+
+6. 结果
+
+   ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200905190244.png)
+
+
+
+### 获取方法执行内容
+
+利用JoinPoint进行获取：
+
+```java
+// 在方法执行前
+// JoinPoint一定要在参数列表的第一位
+@Before("pointcut()")
+public void logStart(JoinPoint joinPoint){
+    // 获取方法签名
+    Signature signature = joinPoint.getSignature();
+    System.out.println("signature: " + signature + " name: " + signature.getName());
+    // 获取方法参数
+    Object[] args = joinPoint.getArgs();
+    System.out.println("argsLen: " + args.length + " arg: " + args[0]);
+    // 切入类型
+    String kind = joinPoint.getKind();
+    System.out.println("kind: " + kind);
+    // 切面地址
+    SourceLocation sourceLocation = joinPoint.getSourceLocation();
+    System.out.println("sourceLocation: " + sourceLocation);
+    // 目标方法类
+    Object aThis = joinPoint.getThis();
+    System.out.println("Object: " + aThis);
+    // 和kind一样
+    JoinPoint.StaticPart staticPart = joinPoint.getStaticPart();
+    System.out.println("staticPart: " + staticPart);
+    // 目标方法
+    Object target = joinPoint.getTarget();
+    System.out.println("target: " + target);
+    // joinPoint的简短描述
+    String string = joinPoint.toShortString();
+    System.out.println("joinPoint: " + string);
+
+    System.out.println("logStart...");
+}
+```
+
+
+
+**获取返回值和异常：**
+
+```java
+@AfterReturning(value = "pointcut()", returning = "result")
+public void logReturn(Object result){
+```
+
+```java
+@AfterThrowing(value = "pointcut()", throwing = "exception")
+public void logException(Exception exception){
+```
+
+
+
+### @EnableAspectJAutoProxy注解
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Import(AspectJAutoProxyRegistrar.class)
+public @interface EnableAspectJAutoProxy {
+    
+// 之前说过，实现这个接口可以向容器去注册一些组件   
+// 其实就是注册AspectJAnnotationAutoProxyCreator
+class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+```
+
+在**registerBeanDefinitions**方法上打上断点：
+
+```java
+@Override
+public void registerBeanDefinitions(
+    AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+
+	// 向容器中注册AspectJAnnotationAutoProxyCreator，如果有必要的话
+    // 其实就是一个注解切面的创建器
+    AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
+
+    AnnotationAttributes enableAspectJAutoProxy =
+        // 获取属性
+        AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
+    if (enableAspectJAutoProxy != null) {
+        // 进行属性的判断
+        if (enableAspectJAutoProxy.getBoolean("proxyTargetClass")) {
+            AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+        }
+        if (enableAspectJAutoProxy.getBoolean("exposeProxy")) {
+            AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);
+        }
+    }
+}
+```
+
+```java
+@Nullable
+private static BeanDefinition registerOrEscalateApcAsRequired(
+    Class<?> cls, BeanDefinitionRegistry registry, @Nullable Object source) {
+
+    Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
+
+    // 如果没有这个类再注册
+    // AUTO_PROXY_CREATOR_BEAN_NAM=org.springframework.aop.config.internalAutoProxyCreator"
+    if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
+        BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+        if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+            int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
+            int requiredPriority = findPriorityForClass(cls);
+            if (currentPriority < requiredPriority) {
+                apcDefinition.setBeanClassName(cls.getName());
+            }
+        }
+        return null;
+    }
+	
+    // 一开始肯定没有，就到这一步，进行一个Bean的定义
+    RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
+    beanDefinition.setSource(source);
+    beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
+    beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+    registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition);
+    return beanDefinition;
+}
+```
+
+
+
+### 创建和注册AspectJAnnotationAutoProxyCreator
+
+**继承关系：**
+
+**实现了后置处理器和aware接口**
+
+```
+AspectJAnnotationAutoProxyCreator
+	->AspectJAwareAdvisorAutoProxyCreator
+		->AbstractAdvisorAutoProxyCreator
+		 	->AbstractAutoProxyCreator
+		 	  implements SmartInstantiationAwareBeanPostProcessor, BeanFactoryAware  -- 后置处理器
+```
+
+为了了解后置处理器和aware接口实现的内容，我们应该找到对应的后置处理器和aware接口相关的方法。
+
+从**AbstractAutoProxyCreator**开始往上找，我们可以发现只有在**AbstractAutoProxyCreator**有后置处理器相关的方法，后面的子类并没有重写，所以我们现在**postProcessBeforeInstantiation**和**postProcessAfterInitialization**两个方法打上断点。然后我们发现**AbstractAdvisorAutoProxyCreator**类上重写了aware接口对应方法**setBeanFactory**，也打上断点。里面有一个**initBeanFactory**方法，在**AnnotationAwareAspectJAutoProxyCreator**中重写了，所以我们在这个类的**initBeanFactory**上打断点。
+
+最后在我们的配置类上也打上断点。
+
+**debug**：（从左侧运行栈开始查看）
+
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200907143502.png)
+
+1. 首先传入配置类，创建ioc容器
+
+   ```java
+   @Test
+   public void test1(){
+       AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfigOfAOP.class);
+       HelloAOP helloAOP = applicationContext.getBean(HelloAOP.class);
+   
+       helloAOP.sayHello("wex");
+   }
+   ```
+
+2. 注册配置类，调用refresh刷新容器
+
+   ```java
+   public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
+      this();
+      register(componentClasses);
+      refresh();
+   }
+   ```
+
+3. 在refresh()方法中，调用**registerBeanPostProcessors(beanFactory);**注册后置处理器来拦截bean的创建。
+
+   ```java
+   // Register bean processors that intercept bean creation.
+   registerBeanPostProcessors(beanFactory);
+   ```
+
+   **进入里面的回调方法：**
+
+   ```java
+   public static void registerBeanPostProcessors(
+       ConfigurableListableBeanFactory beanFactory, AbstractApplicationContext applicationContext) {
+   
+   	// 获取对应的BeanPostProcessor的名字
+       String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanPostProcessor.class, true, false);
+   
+       // 计数
+       int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
+       // 加入一些其他的BeanPostProcessor
+       beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
+   
+       // Separate between BeanPostProcessors that implement PriorityOrdered,
+       // Ordered, and the rest.
+       // 区分三种类型，实现了PriorityOrdered，Ordered和原生的
+       List<BeanPostProcessor> priorityOrderedPostProcessors = new ArrayList<>();
+       List<BeanPostProcessor> internalPostProcessors = new ArrayList<>();
+       List<String> orderedPostProcessorNames = new ArrayList<>();
+       List<String> nonOrderedPostProcessorNames = new ArrayList<>();
+       for (String ppName : postProcessorNames) {
+           if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
+               BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+               priorityOrderedPostProcessors.add(pp);
+               if (pp instanceof MergedBeanDefinitionPostProcessor) {
+                   internalPostProcessors.add(pp);
+               }
+           }
+           else if (beanFactory.isTypeMatch(ppName, Ordered.class)) {
+               orderedPostProcessorNames.add(ppName);
+           }
+           else {
+               nonOrderedPostProcessorNames.add(ppName);
+           }
+       }
+   
+       // First, register the BeanPostProcessors that implement PriorityOrdered.
+       sortPostProcessors(priorityOrderedPostProcessors, beanFactory);
+       registerBeanPostProcessors(beanFactory, priorityOrderedPostProcessors);
+   
+       // Next, register the BeanPostProcessors that implement Ordered.
+       // 我们所在的这一层，因为我们的对象实现了Ordered接口
+       List<BeanPostProcessor> orderedPostProcessors = new ArrayList<>(orderedPostProcessorNames.size());
+       for (String ppName : orderedPostProcessorNames) {
+           BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+           orderedPostProcessors.add(pp);
+           if (pp instanceof MergedBeanDefinitionPostProcessor) {
+               internalPostProcessors.add(pp);
+           }
+       }
+       sortPostProcessors(orderedPostProcessors, beanFactory);
+       registerBeanPostProcessors(beanFactory, orderedPostProcessors);
+   
+       // Now, register all regular BeanPostProcessors.
+       List<BeanPostProcessor> nonOrderedPostProcessors = new ArrayList<>(nonOrderedPostProcessorNames.size());
+       for (String ppName : nonOrderedPostProcessorNames) {
+           BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+           nonOrderedPostProcessors.add(pp);
+           if (pp instanceof MergedBeanDefinitionPostProcessor) {
+               internalPostProcessors.add(pp);
+           }
+       }
+       registerBeanPostProcessors(beanFactory, nonOrderedPostProcessors);
+   
+       // Finally, re-register all internal BeanPostProcessors.
+       sortPostProcessors(internalPostProcessors, beanFactory);
+       registerBeanPostProcessors(beanFactory, internalPostProcessors);
+   
+       // Re-register post-processor for detecting inner beans as ApplicationListeners,
+       // moving it to the end of the processor chain (for picking up proxies etc).
+       beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
+   }
+   ```
+
+   1. 获取所有的后置处理器
+
+      ```java
+      String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanPostProcessor.class, true, false);
+      ```
+
+      ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200907144356.png)
+
+   2. 进行计数和区分，PriorityOrdered，Ordered和原生的
+
+   3. 优先注册实现了PriorityOrdered接口的
+
+      ```java
+      // First, register the BeanPostProcessors that implement PriorityOrdered.
+      sortPostProcessors(priorityOrderedPostProcessors, beanFactory);
+      registerBeanPostProcessors(beanFactory, priorityOrderedPostProcessors);
+      ```
+
+   4. 其次再注册实现了Ordered接口的，最后才实现没有优先级的
+
+   5. 注册BeanPostProcessor，其实就是创建对象，然后保存在方法中
+
+      1. 创建bean的实例
+
+         ```java
+         Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+         ```
+
+      2. 给bean的各种属性赋值
+
+         ```java
+         populateBean(beanName, mbd, instanceWrapper);
+         ```
+
+      3. 初始化bean
+
+         ```java
+         exposedObject = initializeBean(beanName, exposedObject, mbd);
+         ```
+
+         1. `invokeAwareMethods(beanName, bean);`调用aware的那些回调接口
+
+            ```java
+            if (bean instanceof BeanFactoryAware) {
+               ((BeanFactoryAware) bean).setBeanFactory(AbstractAutowireCapableBeanFactory.this);
+            }
+            ```
+
+         2. `wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);`调用后置处理器的初始化前方法。
+
+         3. `invokeInitMethods(beanName, wrappedBean, mbd);`执行初始化方法
+
+         4. 然后`wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);`调用后置处理器的初始化后方法。
+
+      4. 继续debug，我们发现调用的是**AbstractAdvisorAutoProxyCreator**的setBeanFactory方法
+
+      5. 调用**AnnotationAwareAspectJAutoProxyCreator**的initBeanFactory方法
+
+         ```java
+         protected void initBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+             super.initBeanFactory(beanFactory);
+             if (this.aspectJAdvisorFactory == null) {
+                 // 创建了反射的通知工厂
+                 this.aspectJAdvisorFactory = new ReflectiveAspectJAdvisorFactory(beanFactory);
+             }
+             this.aspectJAdvisorsBuilder =
+                 // 创建工厂的构建器
+                 new BeanFactoryAspectJAdvisorsBuilderAdapter(beanFactory, this.aspectJAdvisorFactory);
+         }
+         ```
+
+      6. 至此，创建成功。
+
+   6. 将BeanPostProcessors注册到BeanFactory中。
+
+
+
+### AspectJAnnotationAutoProxyCreator的使用
+
+**继续debug**：
+
+1. 创建剩下的单实例bean（在之前的refresh方法里面的）
+
+   ```java
+   // Instantiate all remaining (non-lazy-init) singletons.
+   finishBeanFactoryInitialization(beanFactory);
+   ```
+
+   1. 获取容器中的beanNames，然后依次创建
+
+      ```java
+      List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
+      ```
+
+      ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200907152932.png)
+
+      ```java
+      for (String beanName : beanNames) {
+          RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+          if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+              // 是否是工厂对象
+              if (isFactoryBean(beanName)) {
+                  Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+                  if (bean instanceof FactoryBean) {
+                      final FactoryBean<?> factory = (FactoryBean<?>) bean;
+                      boolean isEagerInit;
+                      if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
+                          isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>)
+                                                                      ((SmartFactoryBean<?>) factory)::isEagerInit,
+                                                                      getAccessControlContext());
+                      }
+                      else {
+                          isEagerInit = (factory instanceof SmartFactoryBean &&
+                                         ((SmartFactoryBean<?>) factory).isEagerInit());
+                      }
+                      if (isEagerInit) {
+                          getBean(beanName);
+                      }
+                  }
+              }
+              else {
+                  // 不是就创建对象
+                  getBean(beanName);
+              }
+      ```
+
+   2. getBean -> doGetBean -> getSingleton
+
+      会先从缓存中查看是否有该对象了，如果有，那么就封装下继续使用，如果没有再进行创建。（保证单实例）
+
+   3. createBean创建对象
+
+      1. 进行解析，如果后置处理器能够返回一个代理对象，那么就使用
+
+         ```java
+         // Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+         Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+         ```
+
+         ```java
+         protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
+             Object bean = null;
+         	// 取出所有的后置处理器
+             if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+                 // Make sure bean class is actually resolved at this point.
+                 // 如果是InstantiationAwareBeanPostProcessor类型，那么久利用它进行创建
+                 // 因为里面有对应的postProcessBeforeInstantiation方法
+                 if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+                     Class<?> targetType = determineTargetType(beanName, mbd);
+                     if (targetType != null) {
+                         bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
+                         if (bean != null) {
+                             bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+                         }
+                     }
+                 }
+                 mbd.beforeInstantiationResolved = (bean != null);
+             }
+             return bean;
+         }
+         ```
+
+      2. 如果不行，调用**doCreateBean**创建。
+
+         和之前一样：创建实例 -> 属性赋值 -> 调用后置处理器初始前方法 -> 自定义初始化方法 -> 调用后置处理器初始后方法
+
+   > 着就是AOP的原理，在每一个创建Bean的时候会进行一个拦截，调用**postProcessBeforeInstantiation**生成代理对象
+
+   2. 放行到我们的目标类的创建上
+
+      ![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200907160011.png)
+
+      ```java
+      @Override
+      public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
+      
+          // 先获取名字
+          Object cacheKey = getCacheKey(beanClass, beanName);
+      
+          if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+              // 判断当前的bean是否在advisedBeans中
+              // advisedBeans这里面就是需要增强的bean
+              // 一开始啥也没有，所以肯定返回false
+              if (this.advisedBeans.containsKey(cacheKey)) {
+                  return null;
+              }
+              
+              // 判断当前bean是不是基础的bean
+              // Advice、Pointcut、Advisor、AopInfrastructureBean或者是切面
+              // 或者需要跳过，获取增强器，判断是不是AspectJPointcutAdvisor
+              if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
+                  this.advisedBeans.put(cacheKey, Boolean.FALSE);
+                  return null;
+              }
+          }
+      
+          // Create proxy here if we have a custom TargetSource.
+          // Suppresses unnecessary default instantiation of the target bean:
+          // The TargetSource will handle target instances in a custom fashion.
+          TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
+          if (targetSource != null) {
+              if (StringUtils.hasLength(beanName)) {
+                  this.targetSourcedBeans.add(beanName);
+              }
+              Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
+              Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);
+              this.proxyTypes.put(cacheKey, proxy.getClass());
+              return proxy;
+          }
+      
+          return null;
+      }
+      ```
+
+   3. 调用**BeanPostProcessorsAfterInitialization**
+
+      ```java
+      public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
+          if (bean != null) {
+              Object cacheKey = getCacheKey(bean.getClass(), beanName);
+              if (this.earlyProxyReferences.remove(cacheKey) != bean) {
+      			// 如果需要就包装
+                  return wrapIfNecessary(bean, beanName, cacheKey);
+              }
+          }
+          return bean;
+      }
+      ```
+
+      ```java
+      protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+          ......
+      
+              // Create proxy if we have advice.
+              // 获取当前bean可用的增强器，判断切点是不是能符合我们的方法（还会进行排序）
+              Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
+          if (specificInterceptors != DO_NOT_PROXY) {
+              // 保存当前bean在advisedBeans中
+              this.advisedBeans.put(cacheKey, Boolean.TRUE);
+              // 创建代理对象
+              // 1. 获取所有的增强器
+              // 2. 创建代理工厂并且将增强器保存到proxyFactory
+              // 3. 两种方式创建代理对象，由Spring自动决定（一般看有无实现接口）
+              Object proxy = createProxy(
+                  bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+              this.proxyTypes.put(cacheKey, proxy.getClass());
+              return proxy;
+          }
+      
+          this.advisedBeans.put(cacheKey, Boolean.FALSE);
+          return bean;
+      }
+      ```
+
+   4. 给容器返回由动态代理创建的对象。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
