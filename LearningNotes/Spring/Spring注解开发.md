@@ -1497,6 +1497,426 @@ AspectJAnnotationAutoProxyCreator
 
 
 
+### 目标方法执行
+
+**目标方法执行打上断点：**
+
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200918144042.png)
+
+
+
+可以看到Spring AOP已经为我们生成了**代理对象**，和一系列的封装好的**增强器**。
+
+![image-20200918144250509](C:\Users\58354\AppData\Roaming\Typora\typora-user-images\image-20200918144250509.png)
+
+
+
+进入**CgLib的拦截方法**：
+
+```java
+@Override
+@Nullable
+public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+    Object oldProxy = null;
+    boolean setProxyContext = false;
+    Object target = null;
+    TargetSource targetSource = this.advised.getTargetSource();
+    try {
+        if (this.advised.exposeProxy) {
+            // Make invocation available if necessary.
+            oldProxy = AopContext.setCurrentProxy(proxy);
+            setProxyContext = true;
+        }
+        // Get as late as possible to minimize the time we "own" the target, in case it comes from a pool...
+		// 获取目标对象
+        target = targetSource.getTarget();
+        Class<?> targetClass = (target != null ? target.getClass() : null);
+        // 根据ProxyFactory对象获取将要执行的目标方法的拦截器链
+        List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+        Object retVal;
+        if (chain.isEmpty() && Modifier.isPublic(method.getModifiers())) {
+            // 如果没有拦截器链，直接执行目标方法
+            Object[] argsToUse = AopProxyUtils.adaptArgumentsIfNecessary(method, args);
+            retVal = methodProxy.invoke(target, argsToUse);
+        }
+        else {
+            // 如果有拦截器链，创建一个method invocation，并且调用proceed()方法
+            retVal = new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed();
+        }
+        retVal = processReturnType(proxy, target, method, retVal);
+        return retVal;
+    }
+    finally {
+        if (target != null && !targetSource.isStatic()) {
+            targetSource.releaseTarget(target);
+        }
+        if (setProxyContext) {
+            // Restore old proxy.
+            AopContext.setCurrentProxy(oldProxy);
+        }
+    }
+}
+```
+
+
+
+#### 获取拦截器链
+
+```java
+public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @Nullable Class<?> targetClass) {
+    // 先获取缓存，方便存放
+    MethodCacheKey cacheKey = new MethodCacheKey(method);
+    List<Object> cached = this.methodCache.get(cacheKey);
+    if (cached == null) {
+        // 通过advisorChainFactory工厂获取拦截器链
+        cached = this.advisorChainFactory.getInterceptorsAndDynamicInterceptionAdvice(
+            this, method, targetClass);
+        this.methodCache.put(cacheKey, cached);
+    }
+    return cached;
+}
+```
+
+```java
+@Override
+public List<Object> getInterceptorsAndDynamicInterceptionAdvice(
+    Advised config, Method method, @Nullable Class<?> targetClass) {
+    AdvisorAdapterRegistry registry = GlobalAdvisorAdapterRegistry.getInstance();
+    Advisor[] advisors = config.getAdvisors();
+    // 1. 申请一个拦截器的
+    List<Object> interceptorList = new ArrayList<>(advisors.length);
+    Class<?> actualClass = (targetClass != null ? targetClass : method.getDeclaringClass());
+    Boolean hasIntroductions = null;
+
+    // 2. 遍历所有的通知，然后按照类型进行处理
+    for (Advisor advisor : advisors) {
+        if (advisor instanceof PointcutAdvisor) {
+            
+            PointcutAdvisor pointcutAdvisor = (PointcutAdvisor) advisor;
+            if (config.isPreFiltered() || pointcutAdvisor.getPointcut().getClassFilter().matches(actualClass)) {
+                MethodMatcher mm = pointcutAdvisor.getPointcut().getMethodMatcher();
+                boolean match;
+                if (mm instanceof IntroductionAwareMethodMatcher) {
+                    if (hasIntroductions == null) {
+                        hasIntroductions = hasMatchingIntroductions(advisors, actualClass);
+                    }
+                    match = ((IntroductionAwareMethodMatcher) mm).matches(method, actualClass, hasIntroductions);
+                }
+                else {
+                    match = mm.matches(method, actualClass);
+                }
+                if (match) {
+                    // 3. 将通知封装成MethodInterceptor的数组
+                    // 如果直接是MethodInterceptor，加进来，如果不是，会有指定的的适配器进行转换
+                    MethodInterceptor[] interceptors = registry.getInterceptors(advisor);
+                    if (mm.isRuntime()) {
+                      
+                        for (MethodInterceptor interceptor : interceptors) {
+                            interceptorList.add(new InterceptorAndDynamicMethodMatcher(interceptor, mm));
+                        }
+                    }
+                    else {
+                        interceptorList.addAll(Arrays.asList(interceptors));
+                    }
+                }
+            }
+        }
+        else if (advisor instanceof IntroductionAdvisor) {
+            IntroductionAdvisor ia = (IntroductionAdvisor) advisor;
+            if (config.isPreFiltered() || ia.getClassFilter().matches(actualClass)) {
+                Interceptor[] interceptors = registry.getInterceptors(advisor);
+                interceptorList.addAll(Arrays.asList(interceptors));
+            }
+        }
+        else {
+            Interceptor[] interceptors = registry.getInterceptors(advisor);
+            // 4. 最后添加进我们的List中返回
+            interceptorList.addAll(Arrays.asList(interceptors));
+        }
+    }
+
+    return interceptorList;
+}
+```
+
+
+
+#### 执行拦截器链
+
+```java
+public Object proceed() throws Throwable {
+    // currentInterceptorIndex记录当前拦截器的索引，一开始默认是-1
+    // 如果它等于interceptorsAndDynamicMethodMatchers.size() - 1
+    // 也就是当前拦截器的数量减1，那么就是没有拦截器了
+    if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
+        return invokeJoinpoint();
+    }
+
+    // 从拦截器数组中获取对应索引的拦截器，并把Index索引加一
+    Object interceptorOrInterceptionAdvice =
+        this.interceptorsAndDynamicMethodMatchers.get(++this.currentInterceptorIndex);
+    if (interceptorOrInterceptionAdvice instanceof InterceptorAndDynamicMethodMatcher) {
+        
+        InterceptorAndDynamicMethodMatcher dm =
+            (InterceptorAndDynamicMethodMatcher) interceptorOrInterceptionAdvice;
+        Class<?> targetClass = (this.targetClass != null ? this.targetClass : this.method.getDeclaringClass());
+        if (dm.methodMatcher.matches(this.method, targetClass, this.arguments)) {
+            return dm.interceptor.invoke(this);
+        }
+        else {
+           
+            return proceed();
+        }
+    }
+    else {
+        // 如果是对应的拦截器，那么把对象闯进去执行方法
+        return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
+    }
+}
+```
+
+```java
+@Override
+public Object invoke(MethodInvocation mi) throws Throwable {
+    // ThreadLocal<MethodInvocation> invocation线程存储
+    MethodInvocation oldInvocation = invocation.get();
+    invocation.set(mi);
+    try {
+        // 其实就是执行这个对象的proceed方法
+        return mi.proceed();
+    }
+    finally {
+        invocation.set(oldInvocation);
+    }
+}
+```
+
+- 首先获得的是一个已经排序好的拦截器链（这个排序是在之前的通知获取中排序好的）
+- 首先执行越后的通知拦截方法，一层一层堆栈下去，然后先执行前置通知
+- 执行结束之后调用invoke()方法，执行目标的方法，然后往回退，执行后置方法
+- 后置方法执行之后，如果有异常，就会直接抛出异常，这时回退之后的异常通知会收到异常然后进行执行
+- 最后不管如何会执行最后的通知方法
+
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/20200918152158.png)
+
+
+
+### 总结
+
+1. @EnableAspectJAutoProxy 开启AOP功能
+2. @EnableAspectJAutoProxy 会给容器中注册一个组件 AnnotationAwareAspectJAutoProxyCreator
+3. AnnotationAwareAspectJAutoProxyCreator是一个后置处理器；
+4. 容器的创建流程：
+   1. registerBeanPostProcessors（）注册后置处理器；创建AnnotationAwareAspectJAutoProxyCreator对象
+   2. finishBeanFactoryInitialization（）初始化剩下的单实例bean
+   3. 创建业务逻辑组件和切面组件
+   4. AnnotationAwareAspectJAutoProxyCreator拦截组件的创建过程
+   5. 组件创建完之后，判断组件是否需要增强
+   6. 切面的通知方法，包装成增强器（Advisor）;给业务逻辑组件创建一个代理对象（cglib）；
+
+5. 执行目标方法：
+   1. 代理对象执行目标方法
+   2. CglibAopProxy.intercept()；
+      1. 得到目标方法的拦截器链（增强器包装成拦截器MethodInterceptor）
+      2. 利用拦截器的链式机制，依次进入每一个拦截器进行执行；
+      3. 效果：
+         - 正常执行：前置通知-》目标方法-》后置通知-》返回通知
+         - 出现异常：前置通知-》目标方法-》后置通知-》异常通知
+
+
+
+## 十一、 声明式事务
+
+### 测试准备
+
+```java
+/**
+ * 声明式事务
+ */
+@Configuration
+@ComponentScan("com.wex.tx")
+public class TxConfig {
+    @Bean
+    public DataSource dataSource() throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser("root");
+        dataSource.setPassword("110325");
+        dataSource.setDriverClass("com.mysql.cj.jdbc.Driver");
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/test?useSSL=true&serverTimezone=GMT%2B8");
+        return dataSource;
+    }
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(DataSource dataSource){
+        return new JdbcTemplate(dataSource);
+    }
+}
+```
+
+```java
+@Repository
+public class StudentDao {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public void insert(){
+        String sql = "insert into student values (?, ?, ?)";
+        jdbcTemplate.update(sql, "wex", "311700", 1);
+    }
+
+}
+```
+
+```java
+@Service
+public class StudentService {
+    @Autowired
+    private StudentDao studentDao;
+
+    public void insert(){
+        studentDao.insert();
+        System.out.println("insert finish...");
+    }
+}
+```
+
+```java
+@Test
+public void test1(){
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(TxConfig.class);
+    StudentService studentService = context.getBean(StudentService.class);
+
+    studentService.insert();
+    context.close();
+}
+```
+
+
+
+### 开启事务
+
+```java
+// 开始事务
+@Transactional
+public void insert(){
+    studentDao.insert();
+    System.out.println("insert finish...");
+}
+```
+
+```java
+@Configuration
+// 开启事务支持
+@EnableTransactionManagement
+@ComponentScan("com.wex.tx")
+public class TxConfig {
+	...
+}
+```
+
+```java
+// 注册事务管理器
+@Bean
+public PlatformTransactionManager platformTransactionManager(DataSource dataSource){
+    return new DataSourceTransactionManager(dataSource);
+}
+```
+
+
+
+### @EnableTransactionManagement原理
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+// 利用selector来进行组件的导入
+@Import(TransactionManagementConfigurationSelector.class)
+public @interface EnableTransactionManagement {}
+```
+
+```java
+// AdviceMode mode() default AdviceMode.PROXY;
+// 这是注解定义的属性，默认是PROXY
+@Override
+protected String[] selectImports(AdviceMode adviceMode) {
+   switch (adviceMode) {
+      // 判断adviceMode，如果是PROXY
+      // 导入AutoProxyRegistrar和ProxyTransactionManagementConfiguration两种组件
+      case PROXY:
+         return new String[] {AutoProxyRegistrar.class.getName(),
+               ProxyTransactionManagementConfiguration.class.getName()};
+      // 如果是ASPECTJ，会导入determineTransactionAspectClass
+      case ASPECTJ:
+         return new String[] {determineTransactionAspectClass()};
+      default:
+         return null;
+   }
+}
+```
+
+
+
+- **AutoProxyRegistrar**：
+  - 给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 组件；
+   - 利用后置处理器机制在对象创建以后，包装对象，返回一个代理对象（增强器），代理对象执行方法利用拦截器链进行调用；
+- **ProxyTransactionManagementConfiguration**
+  - 给容器中注册事务增强器，要用事务注解的信息（事务属性），**TransactionAttributeSource**事务注解解析器。
+  - 注册事务拦截器**transactionInterceptor**，保存了事务的属性信息和事务管理器。它是一个MethodInterceptor。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
