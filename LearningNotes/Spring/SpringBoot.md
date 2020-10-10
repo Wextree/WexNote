@@ -971,11 +971,11 @@ public class UserControllerTest {
 
 ### 4. SpringBoot事务和异步的使用
 
-- SpringBoot的事务很简单，首先使用注解**EnableTransactionManagement**开启事物之后，然后在Service方法上添加注解**Transactional**便可。
+- SpringBoot的事务很简单，首先使用注解**EnableTransactionManagement**开启事务之后，然后在Service方法上添加注解**Transactional**便可。
 
 - 在SpringBoot中使用异步调用是很简单的，只需要在方法上使用**@Async**注解即可实现方法的异步调用。
 
-   注意：需要在启动类加入**@EnableAsync**使异步调用@Async注解生效。
+   > 注意：需要在启动类加入**@EnableAsync**使异步调用@Async注解生效。
 
 
 
