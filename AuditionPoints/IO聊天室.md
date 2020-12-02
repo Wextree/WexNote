@@ -90,9 +90,9 @@ public class Client {
 
 **使用：**
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591879985(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591879985.jpg)
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591879964(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591879964.jpg)
 
 
 
@@ -363,15 +363,15 @@ public class ChatClientCopy extends ChatClient{
 
 ChatClient:
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926450(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591926450.jpg)
 
 ChatClientCopy:
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926483(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591926483.jpg)
 
 ChatServer:
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591926511(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591926511.jpg)
 
 
 
@@ -620,11 +620,11 @@ public class UserInputHandler implements Runnable{
 
 **效果：**
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934584(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591934584.jpg)
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934634(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591934634.jpg)
 
-![](https://gitee.com/wextree/Wex_imgs/raw/master/img/1591934662(1).jpg)
+![](https://gitee.com/Wextree/Wex_imgs/raw/master/img/1591934662.jpg)
 
 
 
