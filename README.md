@@ -52,6 +52,9 @@
   - [UserAgent](./LearningNotes/utils/UserAgent)
 - **ios**
   - [Object-C学习](./LearningNotes/ios/Object-C学习.md)
+  - [GCD](./LearningNotes/ios/GCD.md)
+  - [ios面试知识点](./LearningNotes/ios/ios面试知识点.md)
+  - [KVO](./LearningNotes/ios/KVO.md)
 - **Others**
   - [Linux](./LearningNotes/others/Linux.md)
   - [MyBatis](./LearningNotes/others/MyBatis.md)
